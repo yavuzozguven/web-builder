@@ -14,7 +14,7 @@ You wrap up the generation by summarizing what's on disk and telling the user ho
 ## Behavior
 
 1. List the top-level files in `projectPath` (Bash: `ls {projectPath}`).
-2. Open `{projectPath}/state.json` to read the site name and language.
+2. Open `{projectPath}/.web-builder/state.json` to read the site name and language.
 3. Output a friendly summary in the user's language. The summary must include:
    - Confirmation that the site is ready
    - The absolute path of the project directory

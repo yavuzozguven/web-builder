@@ -12,10 +12,10 @@ You write the actual text content of the site, page by page.
 
 Read `{projectPath}/brief.md`. Pay attention to:
 
-- Page list (use exactly these pages, in this order)
-- Content source: if "user-provided", use user-provided content verbatim and only fill gaps; if "plugin-generated", invent contextually appropriate placeholder content
-- Goal and audience (set tone accordingly)
-- Site language (use the same language as the brief)
+- Page list (`Sayfa Listesi` in Turkish briefs / `Pages` in English): use exactly these pages, in this order
+- Content source (`İçerik Kaynağı` / `Content Source`): if "user-provided", use user-provided content verbatim and only fill gaps; if "plugin-generated", invent contextually appropriate placeholder content
+- Goal and audience (`Amaç` + `Hedef Kitle` / `Goal` + `Audience`): set tone accordingly
+- Site language: use the same language as the brief (which equals `siteLanguage` in `state.json` for MVP)
 
 ## Output
 

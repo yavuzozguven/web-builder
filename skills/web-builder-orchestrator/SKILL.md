@@ -22,7 +22,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
    - Intake returns the absolute path of the project subdirectory it created.
    - If intake exits early (user declined the scope), exit too.
 
-3. Run the agent execution graph against the project directory:
+3. From this point on, **all file operations happen inside the project subdirectory.** `cd` into it before invoking agents. Run the agent execution graph against the project directory:
 
    **Step A — `ui-ux-designer` agent**
 
@@ -45,7 +45,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 
    Same pattern, `subagent_type: "frontend-expert"`, writes the Astro project files and runs the build. Same retry policy.
 
-4. Update `state.json`:
+4. Update `.web-builder/state.json` (relative to the project directory you `cd`'d into in step 3):
    - Set `lastModified` to current ISO timestamp.
    - Set `briefHash` to SHA-256 of the current `brief.md` contents (compute via `Bash`: `shasum -a 256 brief.md | cut -d' ' -f1`).
 
