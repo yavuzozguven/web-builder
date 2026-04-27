@@ -65,14 +65,14 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
    wrangler pages deploy dist --project-name="{siteName}" --commit-dirty=true 2>&1
    ```
 
-   Capture the output. The deploy URL appears in the output as a line containing `https://...pages.dev`. Extract it.
+   Capture the output. The deploy URL appears in the output as a line containing `https://...pages.dev`. Extract it into a variable `{deployUrl}` — this may be a deployment-specific URL (e.g., `https://abc1234.test-cafe.pages.dev`) or the canonical production URL `https://{siteName}.pages.dev`. Use whichever is reported.
 
-3. Update `.web-builder/state.json` `deployment` field:
+3. Update `.web-builder/state.json` `deployment` field with the captured URL:
 
    ```json
    {
      "type": "cloudflare-pages",
-     "url": "https://{siteName}.pages.dev",
+     "url": "{deployUrl}",
      "lastDeployAt": "<ISO timestamp>"
    }
    ```
@@ -82,8 +82,8 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
    ```
    status: success
    target: cloudflare-pages
-   url: https://{siteName}.pages.dev
-   human-readable: "Site Cloudflare'de yayında! Adresin: {url}"
+   url: {deployUrl}
+   human-readable: "Site Cloudflare'de yayında! Adresin: {deployUrl}"
    ```
 
 ### `vercel`

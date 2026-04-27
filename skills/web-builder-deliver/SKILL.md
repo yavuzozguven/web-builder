@@ -35,9 +35,9 @@ You wrap up the generation by summarizing what's on disk and telling the user ho
 
      > Hazır! Tarayıcıda şu adresi aç: http://localhost:4321
      >
-     > Görmek istediğin kadar baksın. Bittikten sonra bana **"kapat"** dersen, dev server'ı durdururum.
+     > Görmek istediğin kadar baksın. Bittikten sonra bana **"kapat"** dersen, açık olan önizlemeyi durdururum.
 
-   - Save the shell ID in your context. When the user later says "kapat" / "stop" / "close" (in either language), use `KillShell` to terminate the bash process and confirm: "Dev server kapatıldı."
+   - Save the shell ID in your context. When the user later says "kapat" / "stop" / "close" (in either language), use `KillShell` to terminate the bash process and confirm: "Önizleme kapatıldı."
 
    If user picks **B**: print a quick reminder of how they can preview later (the existing instructions about `npm run dev`), and proceed to step 5.
 
