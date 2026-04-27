@@ -232,6 +232,57 @@ Pass:
 - A `Revision: technical — preferences-change` commit follows
 - `state.json.chosenStack.frontend` may differ from before; rationale updated
 
+## Test 15: SEO smoke (seo-expert agent)
+
+After Test 1 generation succeeds:
+
+1. Run `/web-builder` again from the parent (or look at the existing `kadikoy-kahve/` project).
+2. Plugin runs the full pipeline; verify `seo.md` exists in the project directory.
+3. Open `seo.md` and verify it has:
+   - Site-wide section with default site name, description, keywords, og policy
+   - Per-page sections — one ### Page block per page in brief.md
+   - Sitemap section listing all pages with priority + changefreq
+   - robots.txt section with User-agent + Allow + Sitemap line
+
+Pass:
+- `seo.md` exists at `{projectPath}/seo.md`
+- Site title is in the user's language (Turkish for Test 1, English for Test 2)
+- All page slugs (e.g., /, /menu, /hakkimizda, /iletisim) appear in both Per-page SEO and Sitemap sections
+- `state.json.agentRuns` has an entry for `seo-expert` with `wrote: ["seo.md"]` and `status: success`
+
+## Test 16: A11y smoke (accessibility-reviewer agent)
+
+After Test 1 generation succeeds:
+
+1. Verify `a11y-report.md` exists in the project directory.
+2. Open `a11y-report.md` and verify it has:
+   - Summary section (files scanned, issues fixed, issues reported)
+   - Auto-fixed issues section (or "no auto-fixes needed" if the generated code was already clean)
+   - Issues reported section (or empty if everything passed)
+   - Notes section (skip-to-content link, page language)
+3. Spot-check the generated frontend code for a11y basics:
+   - At least one `<img>` has a non-empty `alt` attribute
+   - The root `<html>` has `lang="..."` matching state.json.siteLanguage
+   - At least one form input (if present) has an associated `<label>` or aria-label
+
+Pass:
+- `a11y-report.md` exists at `{projectPath}/a11y-report.md`
+- The summary numbers add up correctly (scanned ≥ 1, fixed + reported = total issues found)
+- Spot-checks pass: no `<img>` without alt, `<html lang="...">` set
+- `state.json.agentRuns` has an entry for `accessibility-reviewer`
+
+## Test 17: A11y recheck via revise (optional)
+
+1. After Test 1 + Test 16, manually edit a frontend file to introduce an a11y issue (e.g., remove an alt attribute from an `<img>`).
+2. Run `/web-builder` and pick A (revize) → E (technical) → G (a11y recheck).
+3. Plugin re-runs only `accessibility-reviewer`.
+4. Verify the missing alt was auto-fixed and `a11y-report.md` lists it under "Auto-fixed issues".
+
+Pass:
+- Only `accessibility-reviewer` ran (state.json.agentRuns has new entry; no new entries for content-writer / frontend-expert / etc.)
+- The `<img>` you broke has an alt again
+- `a11y-report.md` mentions the fix
+
 ## Pass criteria
 
 - Both tests complete without manual intervention beyond answering questions.
