@@ -18,6 +18,13 @@ You receive in the prompt:
 
 ## Pre-flight (for all cloud targets)
 
+Read `state.json.scope`. The recommended deploy target depends on scope:
+
+- `single-page`, `multi-page-static`, `interactive-static` → **Cloudflare Pages** (free tier, custom domain easy, CDN included)
+- `full-app` → **Vercel** (broadest support for server functions, edge, modern meta-frameworks)
+
+The deliver skill prompts the user; this is for your awareness. If the user picked an unusual combination (e.g., Cloudflare Pages for a full-app), warn via `human-readable` but still proceed — they may know what they're doing.
+
 Before the per-target deploy, verify that `dist/` exists in the project directory. If missing, return:
 
 ```
