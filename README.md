@@ -4,19 +4,19 @@ A Claude Code plugin that builds you a website end-to-end through guided Q&A. Yo
 
 ## Status
 
-**v0.4.0.** All 4 site scopes supported (single page, multi-page static, interactive static, full app), in sade or dev mode. Stack-agnostic — Claude picks the best framework/language for your project at generation time.
+**v0.5.0.** Full quality pass: per-page SEO and accessibility review run as part of every generation. All 4 site scopes supported, sade and dev modes, stack-agnostic agents.
 
 - ✅ Generate any of 4 scope types from Q&A
-- ✅ Sade mode: minimal Q&A, plugin agents pick stack silently
-- ✅ Dev mode (`/web-builder-dev`): user expresses preferences (interactivity / performance / preferred backend language); agent picks accordingly
-- ✅ Stack-agnostic plugin: no hardcoded framework list. The agents pick from current ecosystem at runtime — future-proof against framework churn
-- ✅ Stack pick recorded in `state.json.chosenStack` so revisions stay consistent
-- ✅ Preview locally with one click
-- ✅ Deploy to Cloudflare Pages, Vercel, Netlify, or GitHub Pages (scope-aware default)
+- ✅ Sade mode + dev mode (`/web-builder-dev`)
+- ✅ Stack-agnostic plugin: agents pick framework/language at runtime
+- ✅ Stack pick recorded in `state.json.chosenStack`
+- ✅ Preview locally + deploy to Cloudflare Pages / Vercel / Netlify / GitHub Pages
 - ✅ Auto git initialization in sade mode
-- ✅ Revise existing projects: structured Q&A + impact analysis + undo + preferences-change
+- ✅ Revise existing projects: structured Q&A + impact analysis + undo + preferences-change + a11y recheck
+- ✅ Per-page SEO: every site gets `seo.md` with titles, descriptions, og policy, sitemap, robots
+- ✅ Accessibility review: every generated frontend gets a pass for missing alt text, labels, semantic HTML, color contrast; auto-fixes inline + `a11y-report.md`
 
-Not yet supported (coming in later versions): SEO/accessibility agents, custom domain automation, multi-language site output, public Claude Code plugin distribution.
+Not yet supported (coming in later versions): public Claude Code plugin distribution, custom domain automation, multi-language site output, Schema.org structured data, automated Lighthouse / Pa11y runs.
 
 ## Install (local, pre-v1.0)
 
@@ -80,7 +80,7 @@ pnpm dev
 
 ## Architecture (one-liner)
 
-Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`) handle the dialog. Worker agents (`ui-ux-designer`, `content-writer`, `frontend-expert`, `backend-engineer`, `deployer`) write the actual files in their own context. `frontend-expert` and `backend-engineer` are stack-agnostic — they pick the framework/language at runtime based on user preferences and current ecosystem knowledge, then record the choice in `state.json.chosenStack`.
+Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`) handle the dialog. Worker agents (`ui-ux-designer`, `content-writer`, `seo-expert`, `frontend-expert`, `backend-engineer`, `accessibility-reviewer`, `deployer`) write the actual files in their own context. The pipeline runs: designer → [content-writer + seo-expert parallel] → [frontend-expert + backend-engineer parallel for full-app] → accessibility-reviewer (final pass). All agents stack-agnostic.
 
 See `docs/specs/2026-04-26-web-builder-plugin-design.md` for the full design.
 
