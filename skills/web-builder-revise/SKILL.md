@@ -138,10 +138,11 @@ description: <user's verbatim answer>
 >
 > A) Deploy hedefi değiştir (örn. Cloudflare → Vercel)
 > B) Site adı / URL slug değiştir
-> C) SEO meta (title, description) değiştir
+> C) SEO meta (title, description, og policy) değiştir
 > D) Performance / cache ayarları
 > E) Tercihlerimi değiştir (interaktivite, performans, dil tercihi vs. — agent yeniden stack seçecek)
 > F) Scope değiştir (örn. tek sayfa → çok sayfalı — büyük değişiklik, site yeniden üretilir)
+> G) Erişilebilirlik (a11y) tekrar kontrol et / iyileştirmeler uygula
 
 For category E, note: SEO meta and performance are partially Plan 5 (SEO/a11y agents). For now, surface a friendly note: "SEO ve performance için tam destek bir sonraki sürümde geliyor. Şimdilik basit değişiklikleri uygulayabilirim."
 
@@ -171,6 +172,16 @@ new-scope: <single-page | multi-page-static | interactive-static | full-app>
 ```
 
 The orchestrator will re-run all agents for both E and F (they may pick different stacks).
+
+For G (a11y-recheck): no further questions needed. Return:
+
+```
+category: technical
+detail: a11y-recheck
+description: User asked to re-run accessibility review
+```
+
+The orchestrator on receiving `detail: a11y-recheck` runs ONLY the `accessibility-reviewer` agent (not the full pipeline) and refreshes `a11y-report.md`.
 
 ## Confirmation before returning
 
