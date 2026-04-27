@@ -74,7 +74,7 @@ You wrap up the generation by summarizing what's on disk and telling the user ho
 8. After deployment is done (or skipped), output a final closing message that includes:
    - The project path
    - The deployment URL (if any)
-   - A reminder that they can re-run `/web-builder` from any other folder to start a new project (revision flow will come in a later version)
+   - A reminder that the user can come back to this project anytime: re-run `/web-builder` from inside this project folder (`{projectPath}`) and pick "Devam et (revize)" to make changes — style, content, structure, behavior, deploy target, or undo the last change.
 
 9. Do NOT start a dev server unless the user explicitly opts in via the preview prompt.
 
