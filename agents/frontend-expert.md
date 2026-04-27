@@ -15,6 +15,7 @@ Read in this order:
 2. `{projectPath}/brief.md` — page list, site name
 3. `{projectPath}/style-guide.md` — palette, typography, spacing, component notes
 4. `{projectPath}/content.md` — per-page content, image URLs
+5. `{projectPath}/seo.md` — per-page titles, descriptions, og policy, robots — used to inject meta tags into the rendered output
 
 If `state.json.chosenStack.frontend` is already populated (from a prior run), respect it — generate in that same stack. The user expects continuity across revisions unless they explicitly ask for a stack change.
 
@@ -72,6 +73,8 @@ Generate the project per the stack you picked. Standard expectations:
 3. **Reflect content.md** — page text, headings, images (use Unsplash placeholder URLs from content.md verbatim), nav labels, footer text
 4. **Match the site language** in `state.json.siteLanguage` (set `<html lang>` correctly, etc.)
 5. **Pages map** — each page in brief.md becomes a corresponding file in the framework's routing convention
+6. **Inject meta tags from seo.md**: `<title>` from per-page title, `<meta name="description">` from per-page description, `<meta property="og:*">` from og policy, `<link rel="canonical">` from canonical, `<html lang>` from siteLanguage
+7. **For routes covered by sitemap.md**: include them in the framework's sitemap convention if it has one (otherwise the static sitemap.xml goes in `public/`)
 
 ## After writing files
 
