@@ -19,6 +19,20 @@ You will be given the absolute path of the project directory. Read `{projectPath
 
 Write **only** `{projectPath}/style-guide.md`. Overwrite if it exists.
 
+## Scope-aware extensions
+
+Read `{projectPath}/.web-builder/state.json` to get `scope`. Extend the style guide depending on scope:
+
+- **single-page:** Standard palette, typography, spacing. Component notes can omit Cards if the page doesn't have them.
+- **multi-page-static:** Standard. All sections of the template apply.
+- **interactive-static:** Add a `## Interactive components` section: input field styling, button hover/active/disabled states, modal/dialog tokens, animation easing curves.
+- **full-app:** Add three sections beyond the standard:
+  - `## Component states` — for buttons, inputs, links, cards: visual treatments for `default | hover | active | disabled | loading | error`
+  - `## Layout patterns` — sidebar+main, dashboard grid, form layouts, list/detail views (these are visual patterns, not framework-specific)
+  - `## Empty / error / loading states` — visual treatments for "no data", "error", "loading skeleton"
+
+Do not name any specific framework or library. The output is design tokens and visual descriptions only — `frontend-expert` translates them into whatever stack it picks.
+
 ## style-guide.md template
 
 ```markdown
