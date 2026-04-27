@@ -22,7 +22,7 @@ Run this from a terminal with Claude Code installed and the web-builder plugin l
 ## Test 1: Turkish, plugin-generated content, minimalist
 
 1. Run: `claude` (start Claude Code in this directory).
-2. In the prompt, type: `/web-builder`
+2. In the prompt, type: `/web-builder:start`
 3. Expected: plugin asks Q1 in Turkish (because no language signal yet — should default to whichever; if it picks English, type your answer in Turkish and it should switch).
 4. Answer Q1: `Kadıköy'de küçük bir kafem var, kahve ve sandviç satıyorum, bir tanıtım sitesi istiyorum.`
 5. Expected: plugin summarizes "çok sayfalı tanıtım sitesi" interpretation; presents A/B/C choice. Pick A.
@@ -118,7 +118,7 @@ Pass: no silent failures; auth handoff is clean and respects user agency.
 
 After Test 1 generation succeeds:
 
-1. Without leaving the parent folder, run `/web-builder` again from the same parent.
+1. Without leaving the parent folder, run `/web-builder:start` again from the same parent.
 2. Plugin should detect the existing `.web-builder/state.json` (manual-edit check passes since brief.md unchanged).
 3. Plugin asks: "Geçen sefer kadikoy-kahve sitesini yapmıştık. Devam edelim mi yoksa yeni bir site mi?"
 4. Pick **A) Devam et (revize)**.
@@ -140,7 +140,7 @@ Pass:
 
 Following Test 7's project state:
 
-1. Run `/web-builder` again from the parent.
+1. Run `/web-builder:start` again from the parent.
 2. Pick **A) Devam et (revize)**, then **B) İçerik**, then **A) Belirli bir sayfanın metnini değiştir**.
 3. Plugin asks which page; say "Hakkımızda".
 4. Plugin asks what to change; say "Daha samimi bir tone, kafenin kuruluş hikayesi de eklensin."
@@ -210,7 +210,7 @@ Pass:
 
 ## Test 13: Dev mode with backend language preference
 
-1. Run `/web-builder-dev` in a clean dir.
+1. Run `/web-builder:dev` in a clean dir.
 2. At scope, pick D (full-app).
 3. At preference questions, set `backendLang` to `python` (option C).
 4. Plugin generates the project; backend-engineer's pick should be a Python framework (whatever it considers best for full-app + Python today).
@@ -222,7 +222,7 @@ Pass:
 
 ## Test 14: Revise — change preferences (re-pick stack)
 
-1. After Test 11 generation succeeds, run `/web-builder` again.
+1. After Test 11 generation succeeds, run `/web-builder:start` again.
 2. Pick A (devam et / revize), then E (technical), then E (Tercihlerimi değiştir).
 3. Walk through the preference questions; change `priority` from `simple` to `feature-richness`.
 4. Plugin regenerates; the frontend-expert may pick a different stack (richer framework) and update `state.json.chosenStack.frontend`.
@@ -237,7 +237,7 @@ Pass:
 
 After Test 1 generation succeeds:
 
-1. Run `/web-builder` again from the parent (or look at the existing `kadikoy-kahve/` project).
+1. Run `/web-builder:start` again from the parent (or look at the existing `kadikoy-kahve/` project).
 2. Plugin runs the full pipeline; verify `seo.md` exists in the project directory.
 3. Open `seo.md` and verify it has:
    - Site-wide section with default site name, description, keywords, og policy

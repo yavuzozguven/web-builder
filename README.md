@@ -36,7 +36,7 @@ claude
 then in the Claude prompt:
 
 ```
-/web-builder
+/web-builder:start
 ```
 
 The plugin asks 5-10 questions in plain language, picks an appropriate framework, and generates a working project in a subfolder. Then it offers to preview the site locally and (if you want) deploy it to a free host.
@@ -44,7 +44,7 @@ The plugin asks 5-10 questions in plain language, picks an appropriate framework
 For technical users who want to express preferences (e.g., "I prefer Python on the backend", "I want it as simple as possible", "I prioritize performance"):
 
 ```
-/web-builder-dev
+/web-builder:dev
 ```
 
 Same flow with extra preference questions. The plugin still picks the framework — but informed by your preferences.
@@ -65,14 +65,14 @@ Each generated project lives in its own subfolder:
 └── (frontend project files — vary by stack the agent picked)
 ```
 
-The `*.md` files are human-readable — you can edit them by hand, then re-run `/web-builder` from inside the project folder; the plugin detects your edits (briefHash diff) and offers to regenerate the affected parts.
+The `*.md` files are human-readable — you can edit them by hand, then re-run `/web-builder:start` from inside the project folder; the plugin detects your edits (briefHash diff) and offers to regenerate the affected parts.
 
 ## Revise an existing project
 
 From inside a project folder:
 
 ```
-/web-builder
+/web-builder:start
 ```
 
 The plugin asks "Devam et (revize) / Yeni site / İptal et". Pick "Devam et" and you get a structured Q&A:

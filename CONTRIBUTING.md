@@ -16,7 +16,7 @@ Open a GitHub issue with:
 2. Run `tests/lint.sh` from the repo root — must pass (`14 passed, 0 failed`).
 3. If you add a new agent or skill, add a corresponding entry to `tests/lint.sh`'s expected count and ensure frontmatter is well-formed.
 4. Critical guardrail: no specific framework names (Astro, Next.js, SvelteKit, etc.) in `agents/`, `skills/`, or `commands/` files. The plugin is stack-agnostic — agents decide at runtime.
-5. Keep the user-facing dialog in plain language; technical jargon goes in dev mode (`/web-builder-dev`) only.
+5. Keep the user-facing dialog in plain language; technical jargon goes in dev mode (`/web-builder:dev`) only.
 6. Open the PR with a clear summary of what changed and why.
 
 ## Local development
@@ -40,7 +40,7 @@ Re-install after each change.
 ```
 web-builder/
 ├── plugin.json        # plugin manifest
-├── commands/          # slash commands (/web-builder, /web-builder-dev)
+├── commands/          # slash commands (/web-builder:start, /web-builder:dev)
 ├── skills/            # user-facing dialog flows (orchestrator, intake, revise, deliver)
 ├── agents/            # worker agents (designer, content, seo, frontend, backend, a11y, deployer)
 ├── tests/

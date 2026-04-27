@@ -12,7 +12,7 @@ First stable release. The plugin's functional surface defined in the v1 design s
 Highlights of the journey from v0.1.0:
 
 - All 4 site scopes (single page, multi-page static, interactive static, full app)
-- Sade mode (`/web-builder`) and dev mode (`/web-builder-dev`)
+- Sade mode (`/web-builder:start`) and dev mode (`/web-builder:dev`)
 - Stack-agnostic worker agents (frontend-expert and backend-engineer pick framework/language at runtime)
 - Preview + deploy to Cloudflare Pages, Vercel, Netlify, GitHub Pages, or local
 - Revision flow with impact analysis, undo, and manual-brief-edit detection
@@ -37,7 +37,7 @@ This is the first version intended for public install via the Claude Code plugin
 ## [0.4.0] - 2026-04-27
 
 ### Added
-- `/web-builder-dev` slash command (dev mode entry)
+- `/web-builder:dev` slash command (dev mode entry)
 - All 4 site scopes (single page, multi-page static, interactive static, full app)
 - `backend-engineer` agent (stack-agnostic, full-app only)
 - Stack-agnostic worker agents (frontend-expert + backend-engineer pick at runtime)
