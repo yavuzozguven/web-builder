@@ -45,8 +45,8 @@ You wrap up the generation by summarizing what's on disk and telling the user ho
 
    > Siteyi internet'te yayınlamak ister misin? Birkaç ücretsiz seçenek var:
    >
-   > A) Cloudflare Pages (önerilen — en cömert ücretsiz plan, custom domain kolay)
-   > B) Vercel (Next.js için en doğal, statik için de iyi)
+   > A) Cloudflare Pages ({"önerilen — en cömert ücretsiz plan, custom domain kolay" if scope is static, otherwise "iyi statik seçenek"})
+   > B) Vercel ({"önerilen — modern full-app için en doğal" if scope is full-app, otherwise "full-app için en iyi, statik için de uygun"})
    > C) Netlify (klasik, basit setup)
    > D) GitHub Pages (kendi repo'na sahip olursun, build GitHub'da yapılır)
    > E) Hayır şimdilik / Sadece dosyalar — kendim yüklerim
