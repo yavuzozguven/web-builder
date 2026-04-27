@@ -1,89 +1,122 @@
 # web-builder
 
-A Claude Code plugin that builds you a website end-to-end through guided Q&A. You describe what you want, the plugin asks a few quick questions, and you end up with a working site in a folder.
+A Claude Code plugin that builds you a complete website end-to-end through guided Q&A.
 
-## Status
+You describe what you want — a one-pager for your CV, a multi-page tanıtım site for your café, a full-app for your team's tools — the plugin asks a few short questions, picks the most appropriate framework/language for the job, generates the code, and (optionally) deploys it.
 
-**v0.5.0.** Full quality pass: per-page SEO and accessibility review run as part of every generation. All 4 site scopes supported, sade and dev modes, stack-agnostic agents.
+The plugin is **stack-agnostic**: it doesn't ship with a hardcoded list of frameworks. The agents pick from the current ecosystem at runtime — so the choice tracks what's actually best today, not what was best when the plugin was authored.
 
-- ✅ Generate any of 4 scope types from Q&A
-- ✅ Sade mode + dev mode (`/web-builder-dev`)
-- ✅ Stack-agnostic plugin: agents pick framework/language at runtime
-- ✅ Stack pick recorded in `state.json.chosenStack`
-- ✅ Preview locally + deploy to Cloudflare Pages / Vercel / Netlify / GitHub Pages
-- ✅ Auto git initialization in sade mode
-- ✅ Revise existing projects: structured Q&A + impact analysis + undo + preferences-change + a11y recheck
-- ✅ Per-page SEO: every site gets `seo.md` with titles, descriptions, og policy, sitemap, robots
-- ✅ Accessibility review: every generated frontend gets a pass for missing alt text, labels, semantic HTML, color contrast; auto-fixes inline + `a11y-report.md`
-
-Not yet supported (coming in later versions): public Claude Code plugin distribution, custom domain automation, multi-language site output, Schema.org structured data, automated Lighthouse / Pa11y runs.
-
-## Install (local, pre-v1.0)
+## Install
 
 ```bash
-git clone https://github.com/<your-username>/web-builder.git
-cd web-builder
-claude code plugin install .   # or the equivalent local-install command for your Claude Code version
+claude code plugin install yavuzozguven/web-builder
+```
+
+(Or, if you've cloned the repo locally:)
+
+```bash
+cd path/to/web-builder
+claude code plugin install .
 ```
 
 ## Use
 
-```bash
-mkdir my-projects && cd my-projects
+In any directory:
+
+```
 claude
 ```
 
-In the Claude prompt:
+then in the Claude prompt:
 
 ```
 /web-builder
 ```
 
-Answer 5 short questions. The plugin creates a subfolder with a working site and tells you how to view it.
+The plugin asks 5-10 questions in plain language, picks an appropriate framework, and generates a working project in a subfolder. Then it offers to preview the site locally and (if you want) deploy it to a free host.
 
-For technical users who want to influence the stack pick (preference for Python on backend, "I want it as simple as possible", "I prioritize performance", etc.):
+For technical users who want to express preferences (e.g., "I prefer Python on the backend", "I want it as simple as possible", "I prioritize performance"):
 
 ```
 /web-builder-dev
 ```
 
-Same flow but with preference questions added. The plugin still picks the framework — but informed by your preferences.
+Same flow with extra preference questions. The plugin still picks the framework — but informed by your preferences.
 
-## What the plugin generates
+## What you end up with
+
+Each generated project lives in its own subfolder:
 
 ```
 {project-name}/
 ├── brief.md              # what you told the plugin you wanted
 ├── style-guide.md        # color palette, fonts, layout decisions
 ├── content.md            # page-by-page text and images
+├── seo.md                # per-page titles, descriptions, og policy, sitemap, robots
+├── a11y-report.md        # accessibility review results (inline fixes + report)
 ├── .web-builder/
-│   └── state.json        # plugin's own state (you don't need to touch this)
-├── package.json
-├── astro.config.mjs
-├── src/
-│   ├── layouts/
-│   ├── components/
-│   ├── pages/
-│   └── styles/
-└── public/
+│   └── state.json        # plugin's own state (preferences + chosenStack)
+└── (frontend project files — vary by stack the agent picked)
 ```
 
-You can edit `brief.md` by hand — re-run `/web-builder` from inside the project folder and the plugin will detect the change (briefHash diff) and ask whether to regenerate the affected parts. `style-guide.md` and `content.md` can also be hand-edited; the next revision through the plugin will honor whatever's there.
+The `*.md` files are human-readable — you can edit them by hand, then re-run `/web-builder` from inside the project folder; the plugin detects your edits (briefHash diff) and offers to regenerate the affected parts.
 
-## View your site
+## Revise an existing project
 
-```bash
-cd {project-name}
-pnpm dev
-# open http://localhost:4321
+From inside a project folder:
+
+```
+/web-builder
 ```
 
-## Architecture (one-liner)
+The plugin asks "Devam et (revize) / Yeni site / İptal et". Pick "Devam et" and you get a structured Q&A:
 
-Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`) handle the dialog. Worker agents (`ui-ux-designer`, `content-writer`, `seo-expert`, `frontend-expert`, `backend-engineer`, `accessibility-reviewer`, `deployer`) write the actual files in their own context. The pipeline runs: designer → [content-writer + seo-expert parallel] → [frontend-expert + backend-engineer parallel for full-app] → accessibility-reviewer (final pass). All agents stack-agnostic.
+- **Stil** (renkler, font, layout)
+- **İçerik** (metinler, kontak)
+- **Yapı** (yeni sayfa, sayfa silme)
+- **Davranış** (form, animasyon)
+- **Teknik** (deploy, SEO meta, tercih değişikliği, scope, a11y recheck)
+- **Serbest yazım** (her şey)
+- **Son değişikliği geri al** (`git revert`)
+
+Each revision auto-commits before/after, so undo is always available.
+
+## Deploy
+
+After generation (or on revision), the plugin asks where to publish:
+
+- **Cloudflare Pages** — free, custom domain easy
+- **Vercel** — best for full-app
+- **Netlify** — classic alternative
+- **GitHub Pages** — your own repo + GitHub Actions
+- **Local-only** — get the files, host yourself
+
+The plugin checks CLI auth (`wrangler login`, `vercel login`, etc.); if you're not logged in, it tells you the exact command to run.
+
+## Architecture
+
+Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`) handle dialog. Worker agents (`ui-ux-designer`, `content-writer`, `seo-expert`, `frontend-expert`, `backend-engineer`, `accessibility-reviewer`, `deployer`) write the actual files in their own context. The pipeline runs:
+
+```
+designer → [content-writer + seo-expert parallel] → [frontend-expert + backend-engineer parallel for full-app] → accessibility-reviewer (final pass)
+```
+
+`frontend-expert` and `backend-engineer` are stack-agnostic — they pick the framework/language at runtime based on your preferences and current ecosystem knowledge, then record the choice in `state.json.chosenStack`.
 
 See `docs/specs/2026-04-26-web-builder-plugin-design.md` for the full design.
 
+## Status
+
+**v1.0.0** — first stable release. Functional surface complete; intended for public install.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+Not yet supported (planned for v1.x): custom domain automation, multi-language site output (hreflang), test framework setup, AI-generated images, template marketplace.
+
+## Contributing
+
+Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines.
+
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
