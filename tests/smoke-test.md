@@ -61,6 +61,58 @@ Repeat Test 1 but in English. At Q4 pick A (user-provided), and supply a name + 
 
 Expected: brief.md, content.md, and rendered site are in English.
 
+## Test 3: Preview flow (after Test 1 generation)
+
+After Test 1 completes and the deliver skill prompts you with "Şimdi siteyi tarayıcında açıp görmek ister misin?":
+
+1. Pick **A) Evet, aç**.
+2. Expected: plugin runs `npm run dev` in the background, waits ~3s, then tells you to open http://localhost:4321 and that you can say "kapat" to stop.
+3. Open http://localhost:4321 in a browser.
+4. Expected: site renders correctly (4 pages, Turkish content, Tailwind styles).
+5. Tell the plugin: "kapat".
+6. Expected: plugin kills the background dev server and confirms.
+
+Pass: dev server stops cleanly, no leftover process on port 4321.
+
+## Test 4: Local deploy (E option)
+
+After preview is closed (or you skipped it), the deploy prompt appears.
+
+1. Pick **E) Sadece dosyalar — kendim yüklerim**.
+2. Expected: plugin invokes deployer with `target=local`, then surfaces a message like "Hazır dosyalar şu klasörde: /tmp/.../test-cafe/dist/".
+3. Verify the path exists and contains the built `index.html`, `menu/`, etc.
+
+Pass: path printed correctly, dist/ contents intact.
+
+## Test 5: Cloudflare Pages deploy (optional, requires wrangler auth)
+
+Run only if you have Cloudflare account + wrangler CLI installed and authenticated.
+
+1. After preview, pick **A) Cloudflare Pages**.
+2. Expected: plugin explains in plain language what will happen, asks for confirmation, then invokes deployer.
+3. Deployer runs `wrangler pages deploy dist --project-name=test-cafe`.
+4. Expected: a `https://test-cafe.pages.dev` URL is printed, and `state.json` `deployment` field is updated.
+5. Open the URL in a browser.
+6. Expected: live site is accessible.
+
+Pass: site is live at returned URL, state.json `deployment.type=cloudflare-pages`.
+
+## Test 6: Cloudflare Pages auth-needed path (optional)
+
+To test the auth-needed flow without actually deploying:
+
+1. Run `wrangler logout` first.
+2. Run `/web-builder` end to end as in Test 1.
+3. At deploy prompt, pick **A) Cloudflare Pages**.
+4. Expected: plugin surfaces `needs-auth` message in plain language, telling you to run `wrangler login`.
+5. Without running login, tell the plugin "tamam" anyway.
+6. Expected: plugin re-invokes deployer, which fails the auth check again, and surfaces the same message. (No auto-login attempt; respects user's choice.)
+7. Run `wrangler login` in another terminal.
+8. Tell the plugin "tamam" again.
+9. Expected: this time deploy succeeds.
+
+Pass: no silent failures; auth handoff is clean and respects user agency.
+
 ## Pass criteria
 
 - Both tests complete without manual intervention beyond answering questions.
