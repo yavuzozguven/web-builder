@@ -1,33 +1,36 @@
-# web-builder Plan 4: Multi-Scope + Dev Mode
+# web-builder Plan 4: Multi-Scope + Dev Mode (Stack-Agnostic)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Support all 4 site scopes (single page, multi-page static, interactive static, full app) — in sade mode with auto-picked defaults, or in dev mode (`/web-builder-dev`) with user stack overrides at the frontend, backend, styling, and DB layers. Make existing agents stack/scope-aware (read `state.json`, branch internally) and add a new `backend-engineer` agent for full-app scope.
+**Goal:** Support all 4 site scopes (single page, multi-page static, interactive static, full app) — in sade mode with sensible defaults, or in dev mode where the user can express preferences (interactivity level, performance priority, preferred language). The plugin **does not name specific frameworks anywhere**. Worker agents read user preferences from `state.json` and pick the most appropriate stack at runtime using Claude's current ecosystem knowledge.
 
-**Architecture:** Two slash commands (`/web-builder` sade, `/web-builder-dev` dev). Intake skill branches on `mode` to ask different question sets. All worker agents (`ui-ux-designer`, `content-writer`, `frontend-expert`, plus new `backend-engineer`) read `state.json.{scope, stack}` and branch internally — one agent per role, multiple stacks per agent. Orchestrator's agent execution graph adapts per scope (skip backend for static, run frontend+backend in parallel for full-app).
+**Why stack-agnostic:** Frameworks evolve fast. A plan that hardcodes "Astro / Next.js / SvelteKit" is brittle — in 1-2 years a different stack may dominate. By delegating the choice to Claude at runtime, the plugin remains future-proof: whatever framework is best when the plugin runs gets used.
 
-**Tech Stack:** Markdown + YAML frontmatter (Claude Code plugin format). Generated projects span vanilla HTML/CSS/JS, Astro+Tailwind, Astro+islands, Next.js, SvelteKit, Node+Express, Go, Java/Spring, Python/FastAPI, SQLite/Postgres/MongoDB.
+**Architecture:** Two slash commands (`/web-builder` sade, `/web-builder-dev` dev). Intake asks scope (always) + preferences (dev mode only) — never enumerates frameworks. Worker agents (`ui-ux-designer`, `content-writer`, `frontend-expert`, new `backend-engineer`) each read scope + preferences from `state.json` and decide what to produce; `frontend-expert` and `backend-engineer` additionally pick a specific stack at runtime and record their choice in `state.json.chosenStack`. Orchestrator's agent execution graph adapts per scope (skip backend for static, parallel frontend+backend for full-app).
+
+**Tech Stack:** Markdown + YAML frontmatter (Claude Code plugin format). Generated projects span whatever Claude picks — typically modern frontend frameworks (vanilla / Astro-like / Next-like / SvelteKit-like / new entrants like Solid/Qwik) and backend frameworks (Node / Go / Python / Java / etc.) plus a database appropriate to the choice.
 
 **v0.4.0 scope:**
+- 4 user-facing scopes (single-page, multi-page-static, interactive-static, full-app) — the only enumeration the plugin owns
+- Sade mode: agents pick stack silently from minimal user input
+- Dev mode: agents pick stack informed by user preferences (or fully delegate if user says "you decide")
+- New `backend-engineer` agent for full-app
+- All agents stack-agnostic in code; pick at runtime
 
-| Scope | Sade default | Dev mode FE choices | Dev mode BE choices (full-app only) | Dev mode DB choices |
-|---|---|---|---|---|
-| Single page | Vanilla HTML/CSS/JS | Vanilla / Astro / Next.js | n/a | n/a |
-| Multi-page static | Astro + Tailwind | Astro / Next.js / SvelteKit / vanilla | n/a | n/a |
-| Interactive static | Astro + Tailwind + Preact islands | Astro / Next.js / SvelteKit | n/a | n/a |
-| Full app | Next.js + Tailwind + Prisma + SQLite | Next.js / SvelteKit | Next.js API / Node+Express / Go (chi) / Java/Spring / Python/FastAPI | SQLite / Postgres / MongoDB / none |
-
-**Definition of done:** A user can run `/web-builder` and pick any of the 4 scopes (Q&A asks). For each scope, sade mode picks the default stack silently and produces a buildable site. A user can run `/web-builder-dev` and override the stack at any layer (frontend/backend/styling/db) — the chosen stack is generated. All 4 agents handle their scope/stack branch correctly. Smoke test passes for at least 3 of the 4 scopes (single-page vanilla, multi-page-static Astro, full-app Next.js+SQLite — all in sade mode) plus 1 dev-mode override (multi-page-static + Next.js).
+**Definition of done:**
+- A user can run `/web-builder`, pick any of 4 scopes, and end up with a working project in **whatever stack the agent picked** for that scope. No errors about "stack not supported".
+- A user can run `/web-builder-dev` and express preferences (interactivity / performance / preferred language). The agent's pick respects those preferences when reasonable.
+- `state.json.chosenStack` is populated after first agent run with the agent's decision (frontend / backend / database / rationale).
+- Smoke test: structurally verify each scope produces a buildable artifact. Don't pin the stack name — verify only that some recognizable framework files exist.
 
 **Out of scope (deferred):**
-- SEO + a11y agents (Plan 5) — they will join the impact-analysis table once added; orchestrator's table is forward-compatible
+- SEO + accessibility agents (Plan 5)
 - Public Claude Code plugin distribution (Plan 6)
 - Custom domain automation (v1.1)
 - Multi-language site output (v1.1)
-- Test framework setup (per spec §7.3)
-- More frontend frameworks (Remix, Solid, Vue) — deferrable
-- More backend frameworks (Rust, Elixir, .NET) — deferrable
-- ORM choice (Prisma vs Drizzle vs raw SQL) — Prisma default for SQL stacks, Mongoose for MongoDB
+- Test framework setup (per spec)
+- OAuth / SSO authentication (only email+password possible if Claude picks an auth scheme)
+- Real-time features (websockets, SSE) — only if Claude picks a stack that includes them and the brief requests it
 
 ---
 
@@ -36,36 +39,36 @@
 ```
 web-builder/
 ├── plugin.json                                  # MODIFY: bump version to 0.4.0
-├── README.md                                    # MODIFY: status to v0.4.0
+├── README.md                                    # MODIFY: status to v0.4.0; emphasize "Claude picks the stack"
 ├── commands/
-│   ├── web-builder.md                           # MODIFY: enable scope question (no longer hardcoded)
+│   ├── web-builder.md                           # MODIFY: small body update (no longer claims "no scope questions")
 │   └── web-builder-dev.md                       # CREATE: dev mode entry
 ├── skills/
 │   ├── web-builder-orchestrator/SKILL.md        # MODIFY: scope-aware agent graph (parallel for full-app)
-│   ├── web-builder-intake/SKILL.md              # MODIFY: scope question (sade) + stack questions (dev)
-│   ├── web-builder-revise/SKILL.md              # MODIFY: technical category gains stack/scope sub-options
-│   └── web-builder-deliver/SKILL.md             # MODIFY: scope-aware preview hint, deploy default
+│   ├── web-builder-intake/SKILL.md              # MODIFY: scope question (sade) + preference questions (dev)
+│   ├── web-builder-revise/SKILL.md              # MODIFY: technical category gains preference-change option
+│   └── web-builder-deliver/SKILL.md             # MODIFY: scope-aware preview, deploy default
 ├── agents/
-│   ├── ui-ux-designer.md                        # MODIFY: scope-aware (full-app component states)
-│   ├── content-writer.md                        # MODIFY: scope-aware (full-app error states/button copy)
-│   ├── frontend-expert.md                       # MAJOR MODIFY: 5 stack branches (vanilla / astro / astro+islands / nextjs / sveltekit)
-│   ├── backend-engineer.md                      # CREATE: 5 BE stacks for full-app
-│   └── deployer.md                              # MODIFY: scope-aware target defaults
+│   ├── ui-ux-designer.md                        # MODIFY: scope-aware (no stack mention)
+│   ├── content-writer.md                        # MODIFY: scope-aware (no stack mention)
+│   ├── frontend-expert.md                       # REWRITE: stack-agnostic — agent picks at runtime
+│   ├── backend-engineer.md                      # CREATE: stack-agnostic backend; only invoked for full-app
+│   └── deployer.md                              # MODIFY: scope-aware target defaults (Cloudflare Pages vs Vercel)
 ├── tests/
 │   ├── fixtures/
-│   │   ├── sample-brief.md                      # unchanged (multi-page-static example)
-│   │   ├── sample-brief-single-page.md          # CREATE
-│   │   ├── sample-brief-full-app.md             # CREATE
+│   │   ├── sample-brief.md                      # unchanged
+│   │   ├── sample-brief-single-page.md          # CREATE (preferences-based, no stack pinned)
+│   │   ├── sample-brief-full-app.md             # CREATE (preferences-based, no stack pinned)
 │   │   ├── sample-style-guide.md                # unchanged
 │   │   ├── sample-content.md                    # unchanged
-│   │   └── sample-state.json                    # unchanged
-│   ├── lint.sh                                  # unchanged (auto-picks up new agent)
+│   │   └── sample-state.json                    # unchanged (Plan 5 will extend if needed)
+│   ├── lint.sh                                  # unchanged (auto-picks up new agent + command)
 │   └── smoke-test.md                            # MODIFY: add Tests 11-14 for new scopes + dev mode
 └── docs/
     └── plans/
         ├── 2026-04-26-plan-2-preview-and-deploy.md
         ├── 2026-04-27-plan-3-revision-flow.md
-        └── 2026-04-27-plan-4-multi-scope-and-dev-mode.md
+        └── 2026-04-27-plan-4-multi-scope-and-dev-mode.md  # this file
 ```
 
 **Responsibilities:**
@@ -73,8 +76,9 @@ web-builder/
 | File | Owns |
 |---|---|
 | `commands/web-builder-dev.md` | Dev-mode entry; sets `mode=dev` for orchestrator |
-| `agents/backend-engineer.md` | Full-app backend code generation across 5 BE stacks (Next.js API / Node+Express / Go / Java / Python) + DB setup (SQLite / Postgres / MongoDB) |
-| Existing agents (modified) | Branch on `state.json.{scope, stack}` to produce per-scope/per-stack output |
+| `agents/backend-engineer.md` | Full-app backend code generation. Reads scope + preferences, picks a backend stack and database appropriate for "right now", generates code, records choice in `state.json.chosenStack.backend` and `.database` |
+| `agents/frontend-expert.md` (rewritten) | Picks a frontend stack at runtime based on scope + preferences, generates code, records choice in `state.json.chosenStack.frontend` |
+| Existing agents (modified) | Read scope from `state.json` and adapt their output template (e.g., designer adds component states for full-app); none of them name specific frameworks |
 
 ---
 
@@ -89,14 +93,14 @@ Create `commands/web-builder-dev.md`:
 
 ```markdown
 ---
-description: Build a website end-to-end through guided Q&A — dev mode (asks technical preferences: stack, styling, DB, lint).
+description: Build a website end-to-end through guided Q&A — dev mode (asks technical preferences like interactivity level, performance priority, language preference; the plugin still picks the framework, but with your input).
 ---
 
-You are entering the web-builder flow in **dev mode** (technical mode — user can pick framework, styling, database, etc.; technical terms are surfaced and explained inline).
+You are entering the web-builder flow in **dev mode** — a slightly more technical Q&A. The user can express preferences (e.g., "I care about fast initial load", "I prefer Python on the backend", "let me write the JavaScript myself") and these inform the agent's framework choice. Plain language is still preferred.
 
 Use the `Skill` tool to invoke the `web-builder-orchestrator` skill, passing `mode=dev`.
 
-Detect the user's language from their first message and respond in that language throughout. Plain language is still preferred where possible, but you can use technical terms (Astro, Next.js, Prisma, etc.) — the user opted into dev mode.
+Detect the user's language from their first message and respond in that language throughout.
 
 Do not output anything to the user before invoking the skill — the skill itself handles all dialog.
 ```
@@ -120,15 +124,15 @@ git commit -m "feat: add /web-builder-dev slash command (dev mode entry)"
 **Files:**
 - Modify: `commands/web-builder.md`
 
-The existing slash command says "no stack-choice questions". With Plan 4, sade mode still doesn't ask stack questions — but it does need to ask the SCOPE question now (whereas Plan 1 hardcoded multi-page-static). Update the command's prompt slightly so it doesn't claim "no scope-choice questions".
+The Plan 1 command says "no stack-choice questions". With Plan 4, the plugin still doesn't ask stack questions in sade mode — but it does ask the SCOPE question now. Update the description so it doesn't make a misleading claim.
 
 - [ ] **Step 1: Read current command**
 
 Run: `cat commands/web-builder.md`
 
-- [ ] **Step 2: Replace the body**
+- [ ] **Step 2: Replace the "sade mode" line**
 
-Use Edit to replace the line:
+Use Edit to replace:
 
 ```
 You are entering the web-builder flow in **sade mode** (plain language, no jargon, no stack-choice questions).
@@ -137,17 +141,15 @@ You are entering the web-builder flow in **sade mode** (plain language, no jargo
 with:
 
 ```
-You are entering the web-builder flow in **sade mode** (plain language, no jargon — the plugin asks plain-language questions about the kind of site you want, and picks the underlying technology automatically).
+You are entering the web-builder flow in **sade mode** (plain language, no jargon — the plugin asks plain-language questions about the kind of site you want, and the framework/language choice is made automatically by the agent at generation time).
 ```
-
-The rest of the file stays the same.
 
 - [ ] **Step 3: Verify**
 
 Run: `grep -c "no stack-choice questions" commands/web-builder.md`
 Expected: 0.
 
-Run: `grep -c "picks the underlying technology" commands/web-builder.md`
+Run: `grep -c "framework/language choice is made automatically" commands/web-builder.md`
 Expected: 1.
 
 - [ ] **Step 4: Commit**
@@ -159,22 +161,14 @@ git commit -m "docs: update /web-builder description for multi-scope sade mode"
 
 ---
 
-## Task 3: Update Intake Skill — Sade Mode Multi-Scope
+## Task 3: Update Intake Skill — Scope + Preferences (No Stack Names)
 
 **Files:**
 - Modify: `skills/web-builder-intake/SKILL.md`
 
-Currently the intake skill hardcodes scope=multi-page-static. Replace the constraints section + Q2 to actually ask the scope and let it vary among the 4 spec-defined options.
+Currently intake hardcodes scope=multi-page-static. Plan 4 makes it ask the scope question and (in dev mode only) collect preferences. Critically: **no specific framework names appear in the questions or the brief.**
 
-- [ ] **Step 1: Read current intake skill**
-
-Run: `cat skills/web-builder-intake/SKILL.md`
-
-Locate:
-- The `## Constraints (MVP)` section
-- The Q2 (`### Q2: Confirm scope interpretation`) section that currently confirms "multi-page-static"
-
-- [ ] **Step 2: Replace constraints section**
+- [ ] **Step 1: Replace the constraints section**
 
 Use Edit to replace:
 
@@ -191,15 +185,16 @@ with:
 ```markdown
 ## Constraints
 
-- **Sade mode (this skill is invoked from `/web-builder`):** ask the user about scope (Q2 below); pick the default stack for that scope automatically and silently. Do not mention stack names.
-- **Dev mode (invoked from `/web-builder-dev`):** ask scope (Q2), then ask stack overrides (frontend / styling / backend / DB / TypeScript / lint). See "Dev mode Q&A extension" below.
+- **Sade mode (this skill is invoked from `/web-builder`):** ask scope (Q2 below); do NOT ask about frameworks or languages; the worker agents will pick automatically.
+- **Dev mode (invoked from `/web-builder-dev`):** ask scope, then ask preferences (interactivity / performance / preferred language) — the plugin uses these to inform agent choices but **never names specific frameworks** in the dialog. The agent picks at runtime.
 - Image strategy: contextual Unsplash placeholders for both modes.
 - The orchestrator passes you a `mode` parameter (`simple` or `dev`); branch on it.
+- **Do not enumerate frameworks anywhere.** No "Astro vs Next.js" choice. The agents decide.
 ```
 
-- [ ] **Step 3: Replace Q2**
+- [ ] **Step 2: Replace Q2 with the new scope question**
 
-Use Edit to replace the entire Q2 section (from `### Q2: Confirm scope interpretation` through the closing of that section before `### Q3: Project name`) with:
+Use Edit to replace the entire current Q2 section (the one that confirms multi-page-static) with:
 
 ````markdown
 ### Q2: Site scope
@@ -207,7 +202,7 @@ Use Edit to replace the entire Q2 section (from `### Q2: Confirm scope interpret
 > Ne tür bir site yapacağız?
 >
 > A) Tek sayfa (kısa tanıtım, one-pager)
-> B) Çok sayfalı tanıtım (ana sayfa + hakkımızda + iletişim falan, etkileşim yok)
+> B) Çok sayfalı tanıtım (ana sayfa + hakkımızda + iletişim falan, hafif ya da hiç etkileşim yok)
 > C) Çok sayfalı + bir-iki etkileşim (form, galeri, küçük JS özellikleri)
 > D) Üye girişi / sipariş / veri kaydı olan tam uygulama
 
@@ -219,100 +214,132 @@ Map the answer:
 
 Capture as `scope`.
 
-In **dev mode**, after the user picks scope, also ask:
-
-> Frontend için tercihin var mı, yoksa ben mi seçeyim?
->
-> A) Sen seç (önereceklerin: {scope-default-stack-name})
-> B) Vanilla HTML/CSS/JS
-> C) Astro + Tailwind
-> D) Next.js + Tailwind
-> E) SvelteKit + Tailwind
-
-Filter the option list per scope:
-- single-page: A, B, C, D
-- multi-page-static: A, C, D, E (vanilla rare for multi-page; offer if asked)
-- interactive-static: A, C, D, E
-- full-app: A, D, E
-
-Capture as `stack` (e.g., `astro+tailwind`, `nextjs+tailwind`).
-
-For **full-app** in dev mode, ask three more questions in order:
-
-#### Q2-dev-be: Backend
-
-> Backend için?
->
-> A) Sen seç (önereceğim: Next.js API routes)
-> B) Next.js API routes (frontend ile aynı pakette)
-> C) Node + Express (ayrı paket)
-> D) Go (chi router)
-> E) Java + Spring Boot
-> F) Python + FastAPI
-
-Capture as `backend` (e.g., `nextjs-api`, `node-express`).
-
-#### Q2-dev-db: Database
-
-> Database için?
->
-> A) Sen seç (önereceğim: SQLite, file tabanlı, en kolay)
-> B) SQLite (Prisma)
-> C) Postgres (Prisma)
-> D) MongoDB (Mongoose)
-> E) Yok / kendim halledeceğim
-
-Capture as `database` (e.g., `sqlite-prisma`).
-
-#### Q2-dev-extra: TypeScript / Lint
-
-> Birkaç teknik tercih:
->
-> - TypeScript: {default per stack — açık for Astro/Next/SvelteKit, kapalı for vanilla}. Değiştirmek ister misin? (E/H)
-> - ESLint + Prettier: default açık. Kapatmak ister misin? (E/H)
-
-Capture `typescript: bool`, `linter: bool`.
+In **dev mode only**, after scope, also ask the preference questions below. In **sade mode**, skip them entirely — the agents will pick reasonable defaults based on scope alone.
 ````
 
-- [ ] **Step 4: Update side effects to include scope/stack/dev fields**
+- [ ] **Step 3: Add a new "Dev mode preferences" section after Q2**
 
-Locate the `## Side effects` section. Update step 5 (writing state.json) to use the captured values instead of hardcoding:
+Insert this new section right after Q2 (before Q3 — project name):
 
-Old wording fragment (in step 5):
+````markdown
+### Q2-dev-prefs: Dev mode preferences (only if mode == dev)
+
+#### Q2-dev-prefs-1: Performance vs simplicity
+
+> Bu site için ne daha önemli?
+>
+> A) Mümkün olduğunca basit ve hızlı kurulum (build step bile olmasın istersen)
+> B) Modern, hızlı (küçük bundle, fast page loads)
+> C) İçerik/feature ağırlıklı (build complexity sorun değil, ama maintainable olsun)
+> D) Fark etmez, sen seç
+
+Capture as `preferences.priority` (one of `simple`, `performance`, `feature-richness`, `claude-decides`).
+
+#### Q2-dev-prefs-2: Interactivity (only ask for `interactive-static` or `full-app`)
+
+> Sitede ne kadar JS-tabanlı etkileşim olacak?
+>
+> A) Az (sadece bir-iki yerde küçük etkileşim)
+> B) Orta (form'lar, küçük UI bileşenleri, biraz dinamik içerik)
+> C) Çok (gerçek anlamda app — sürekli state, complex flows)
+> D) Fark etmez, sen seç
+
+Capture as `preferences.interactivity` (one of `low`, `medium`, `high`, `claude-decides`).
+
+#### Q2-dev-prefs-3: Backend language (only ask for `full-app`)
+
+> Backend tarafı için bir dil/ekosistem tercihin var mı?
+>
+> A) Frontend'le aynı paket olsun (tek node projesi)
+> B) Ayrı bir Node servisi
+> C) Python kullanmak isterim
+> D) Go / Rust / başka bir compiled language
+> E) Java / .NET ekosistemi
+> F) Fark etmez, sen seç
+
+Capture as `preferences.backendLang` (one of `same-as-frontend`, `node-separate`, `python`, `compiled`, `enterprise-jvm`, `claude-decides`).
+
+The plugin does NOT enumerate specific frameworks (Express vs Fastify vs Hono; Django vs FastAPI vs Flask). The agent picks within whichever bucket the user chose.
+
+#### Q2-dev-prefs-4: Database (only ask for `full-app`)
+
+> Database için tercihin?
+>
+> A) En basit (file-based, sıfır ayar — sen seçersin)
+> B) Klasik SQL (Postgres ya da benzeri — sen seçersin)
+> C) Document DB (MongoDB ya da benzeri — sen seçersin)
+> D) Yok / kendim halledeceğim
+> E) Fark etmez, sen seç
+
+Capture as `preferences.dbStyle` (one of `simple`, `sql`, `document`, `none`, `claude-decides`).
+
+#### Q2-dev-prefs-5: TypeScript
+
+> TypeScript kullanalım mı?
+>
+> A) Evet
+> B) Hayır
+> C) Sen seç (scope'a göre uygun olanı)
+
+Capture as `preferences.typescript` (one of `true`, `false`, `claude-decides`).
+
+The whole point is: dev mode collects user-facing intent ("I want fast", "I prefer Python") — never specific tool names. The agent's job is to translate intent into the most appropriate tool **right now**.
+````
+
+- [ ] **Step 4: Update the side effects section (state.json write) to include preferences and chosenStack placeholder**
+
+In the `## Side effects` step that currently writes initial state.json, update it to write:
+
 ```
-Set `mode: "simple"`, `scope: "multi-page-static"`, `stack: "astro+tailwind"`, ...
+mode: <simple|dev>
+scope: <captured value>
+siteName: <captured>
+siteLanguage: <captured>
+createdAt: <ISO>
+lastModified: <ISO>
+agentRuns: []
+preferences: {
+  // Only in dev mode; sade mode leaves this as null or empty {}
+  priority: <captured | null>,
+  interactivity: <captured | null>,
+  backendLang: <captured | null>,
+  dbStyle: <captured | null>,
+  typescript: <captured | null>
+}
+chosenStack: {
+  // Populated by frontend-expert (and backend-engineer for full-app) on first run.
+  // Intake leaves this as null.
+  frontend: null,
+  backend: null,
+  database: null,
+  rationale: null
+}
 ```
 
-New wording:
-```
-Set `mode` to the value passed by the orchestrator (`simple` or `dev`), `scope` to the value captured in Q2, `stack` to either the captured value (dev mode) or the scope-default (sade mode — use the table below), and the remaining captured fields (`backend`, `database`, `typescript`, `linter`) only if mode is `dev`.
-
-Scope → default-stack mapping (sade mode):
-- single-page → vanilla
-- multi-page-static → astro+tailwind
-- interactive-static → astro+tailwind+preact-islands
-- full-app → nextjs+tailwind+prisma+sqlite (full-app sade also implies backend=nextjs-api, database=sqlite-prisma)
-```
+The orchestrator and agents will populate `chosenStack` as they run. Intake just initializes the field structure.
 
 - [ ] **Step 5: Verify**
 
-Run: `grep -c "scope-default-stack-name" skills/web-builder-intake/SKILL.md`
-Expected: at least 1 (in the dev mode question).
+Run: `grep -c "Astro\|Next\.js\|SvelteKit\|Vue\|React\|Django\|FastAPI\|Express" skills/web-builder-intake/SKILL.md`
+Expected: 0. (Critical — the intake skill must not name any specific framework.)
 
-Run: `grep -c "Q2-dev-be" skills/web-builder-intake/SKILL.md`
-Expected: 1.
+Run: `grep -c "preferences" skills/web-builder-intake/SKILL.md`
+Expected: at least 5.
 
-Run: `grep -c "single-page" skills/web-builder-intake/SKILL.md`
-Expected: at least 2 (in Q2 mapping + scope-default table).
+Run: `grep -c "chosenStack" skills/web-builder-intake/SKILL.md`
+Expected: at least 1.
+
+Run: `grep -c "claude-decides" skills/web-builder-intake/SKILL.md`
+Expected: at least 4.
 
 Run: `tests/lint.sh`
-Expected: `11 passed, 0 failed.` (after Task 1 added the new `/web-builder-dev` command file; backend-engineer not yet created)
+Expected: `11 passed, 0 failed.` (after Task 1 added the new command file).
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add skills/web-builder-intake/SKILL.md
-git commit -m "feat: intake supports 4 scopes (sade) + stack overrides (dev mode)"
+git commit -m "feat: intake supports 4 scopes (sade) + framework-agnostic preferences (dev)"
 ```
 
 ---
@@ -322,74 +349,83 @@ git commit -m "feat: intake supports 4 scopes (sade) + stack overrides (dev mode
 **Files:**
 - Modify: `skills/web-builder-intake/SKILL.md` (the brief.md template inside it)
 
-The current template has a `## Teknik` section labeled "(only filled in dev mode)" — that's correct for dev mode. We need to make sure scope is captured in the brief regardless, so downstream agents can read it. Add a Scope line.
+The current template has a `## Teknik` section with "Stack: ...". Plan 4 changes this to be intent-focused: `## Scope` (the user-facing concept) and `## Preferences` (intent in dev mode). The agent records its actual stack choice in `state.json.chosenStack`, NOT in `brief.md`.
 
 - [ ] **Step 1: Locate brief.md template**
 
 In `skills/web-builder-intake/SKILL.md`, find the section starting `## brief.md template` and the markdown content inside it.
 
-- [ ] **Step 2: Add Scope section to template**
+- [ ] **Step 2: Add Scope section + replace Teknik with Preferences**
 
-After the `# Site Briefi: {siteName}` heading, the existing template has `## Amaç`. Insert a new `## Scope` section right after Amaç (or before Hedef Kitle):
+Restructure the brief template as:
 
 ```markdown
+# Site Briefi: {siteName}
+
 ## Scope
 {scope value: single-page | multi-page-static | interactive-static | full-app}
+
+## Amaç
+{user goal}
+
+## Hedef Kitle
+{target audience}
+
+## Sayfa Listesi
+- ...
+
+## İçerik Kaynağı
+{user-provided | plugin-generated}
+
+## Stil Tercihi
+{preset name}
+
+## Davranış / Etkileşim
+{interaction notes}
+
+## Preferences (only populated in dev mode)
+- Priority: {simple | performance | feature-richness | claude-decides | null}
+- Interactivity: {low | medium | high | claude-decides | null}
+- Backend language: {same-as-frontend | node-separate | python | compiled | enterprise-jvm | claude-decides | null}
+- Database style: {simple | sql | document | none | claude-decides | null}
+- TypeScript: {true | false | claude-decides | null}
 ```
 
-Translate to English headings if site language is English (`Scope` stays the same in English).
+If the user is writing in English, use English headings (`Scope`, `Goal`, `Audience`, `Pages`, `Content Source`, `Style`, `Interactivity`, `Preferences`).
 
-- [ ] **Step 3: Update Teknik section template**
+The brief deliberately does NOT mention specific frameworks. The agent's choice is logged in `state.json.chosenStack`, not in brief.md.
 
-Currently:
-```
-## Teknik (only filled in dev mode)
-- Stack: [...]
-- Deploy hedefi: [...]
-```
-
-Replace with:
-```
-## Teknik
-- Stack: {stack value, e.g. "astro+tailwind"}
-- Backend: {backend value if full-app, else "n/a"}
-- Database: {database value if full-app, else "n/a"}
-- TypeScript: {true | false}
-- Linter: {true | false}
-- Deploy hedefi: {default per scope, will be confirmed at deploy time}
-```
-
-(Sade mode populates this with the scope-default stack; dev mode populates with the user's picks. Either way, the brief is complete.)
-
-- [ ] **Step 4: Verify**
+- [ ] **Step 3: Verify**
 
 Run: `grep -c "## Scope" skills/web-builder-intake/SKILL.md`
 Expected: at least 1.
 
-Run: `grep -c "Backend:" skills/web-builder-intake/SKILL.md`
+Run: `grep -c "## Preferences" skills/web-builder-intake/SKILL.md`
 Expected: at least 1.
 
-- [ ] **Step 5: Commit**
+Run: `grep -c "Stack:" skills/web-builder-intake/SKILL.md`
+Expected: 0. (Old template had this. Should be removed.)
+
+Run: `tests/lint.sh`
+Expected: `11 passed, 0 failed.`
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add skills/web-builder-intake/SKILL.md
-git commit -m "docs: brief.md template adds Scope + full Teknik (always populated)"
+git commit -m "docs: brief.md template uses Scope + Preferences (no stack names)"
 ```
 
 ---
 
-## Task 5: Make `ui-ux-designer` Scope-Aware
+## Task 5: Make `ui-ux-designer` Scope-Aware (Stack-Agnostic)
 
 **Files:**
 - Modify: `agents/ui-ux-designer.md`
 
-Add a "Scope branching" section so the agent reads `state.json.scope` and adapts the style guide. Component sets vary by scope (single page = minimal, full app = many states).
+The designer's output (palette, typography, spacing, component notes) is already stack-agnostic by nature. We just need to extend the template per scope (full-app needs more component states, layout patterns, empty/error/loading designs). No stack mentions.
 
-- [ ] **Step 1: Read current agent**
-
-Run: `cat agents/ui-ux-designer.md`
-
-- [ ] **Step 2: Insert scope-branching guidance**
+- [ ] **Step 1: Insert scope-aware extensions section**
 
 Use Edit to insert a new section between `## Output` and `## style-guide.md template`:
 
@@ -398,45 +434,45 @@ Use Edit to insert a new section between `## Output` and `## style-guide.md temp
 
 Read `{projectPath}/.web-builder/state.json` to get `scope`. Extend the style guide depending on scope:
 
-- **single-page:** Minimal extension. Just the standard palette, fonts, spacing. The "Component notes" section can omit Cards if the page doesn't have them.
+- **single-page:** Standard palette, typography, spacing. Component notes can omit Cards if the page doesn't have them.
 - **multi-page-static:** Standard. All sections of the template apply.
-- **interactive-static:** Add a "## Interactive components" section: input field styling, button hover/active/disabled states, modal/dialog tokens, animation easing curves.
-- **full-app:** Add three sections beyond the standard template:
-  - **## Component states** — for buttons, inputs, links, cards: states for `default | hover | active | disabled | loading | error`
-  - **## Layout patterns** — sidebar+main, dashboard grid, form layouts, list/detail views
-  - **## Empty / error / loading states** — visual treatments for "no data", "error", "loading skeleton"
+- **interactive-static:** Add a `## Interactive components` section: input field styling, button hover/active/disabled states, modal/dialog tokens, animation easing curves.
+- **full-app:** Add three sections beyond the standard:
+  - `## Component states` — for buttons, inputs, links, cards: visual treatments for `default | hover | active | disabled | loading | error`
+  - `## Layout patterns` — sidebar+main, dashboard grid, form layouts, list/detail views (these are visual patterns, not framework-specific)
+  - `## Empty / error / loading states` — visual treatments for "no data", "error", "loading skeleton"
+
+Do not name any specific framework or library. The output is design tokens and visual descriptions only — `frontend-expert` translates them into whatever stack it picks.
 ```
 
-- [ ] **Step 3: Verify**
+- [ ] **Step 2: Verify**
 
 Run: `grep -c "Scope-aware extensions" agents/ui-ux-designer.md`
 Expected: 1.
 
-Run: `grep -c "Component states" agents/ui-ux-designer.md`
-Expected: 1.
-
-- [ ] **Step 4: Lint**
+Run: `grep -cE "Astro|Next\.js|SvelteKit|React|Vue" agents/ui-ux-designer.md`
+Expected: 0.
 
 Run: `tests/lint.sh`
-Expected: `11 passed, 0 failed.` (after Task 1 added the new `/web-builder-dev` command file; backend-engineer not yet created)
+Expected: `11 passed, 0 failed.`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add agents/ui-ux-designer.md
-git commit -m "feat: ui-ux-designer adapts style guide to project scope"
+git commit -m "feat: ui-ux-designer adapts style guide to project scope (no stack mention)"
 ```
 
 ---
 
-## Task 6: Make `content-writer` Scope-Aware
+## Task 6: Make `content-writer` Scope-Aware (Stack-Agnostic)
 
 **Files:**
 - Modify: `agents/content-writer.md`
 
-Similar pattern: read scope, adapt content. Full-app needs UI strings (button labels, error messages, empty states); static sites only need page text.
+Same pattern: scope-aware additions, no framework mentions. Full-app needs UI strings, auth flow strings, notification messages. These are language-of-the-site copy, not framework-specific.
 
-- [ ] **Step 1: Insert scope-branching section**
+- [ ] **Step 1: Insert scope-aware extensions section**
 
 Use Edit to insert a new section between `## Output` and `## content.md template` in `agents/content-writer.md`:
 
@@ -447,14 +483,14 @@ Read `{projectPath}/.web-builder/state.json` to get `scope`. Extend `content.md`
 
 - **single-page:** Standard template — site-wide, hero, sections.
 - **multi-page-static:** Standard template — multiple pages.
-- **interactive-static:** After the per-page content sections, add:
-  - **## Interaction copy** — labels for buttons in interactive components (form submit, gallery prev/next, slider play/pause, etc.)
-- **full-app:** Add three sections beyond the standard:
-  - **## UI strings** — button labels, link text, form field labels, validation messages, error messages, empty-state messages, loading text. Keep them concrete and action-oriented.
-  - **## Auth flow strings** — sign-in / sign-up / reset-password page copy if the brief mentions auth
-  - **## Notification / toast messages** — for common actions (saved, deleted, error)
+- **interactive-static:** After per-page sections, add:
+  - `## Interaction copy` — labels for buttons in interactive components (form submit, gallery prev/next, slider play/pause, etc.)
+- **full-app:** Add three sections:
+  - `## UI strings` — button labels, link text, form field labels, validation messages, error messages, empty-state messages, loading text. Action-oriented and concrete.
+  - `## Auth flow strings` — sign-in / sign-up / reset-password page copy if the brief mentions auth
+  - `## Notification / toast messages` — for common actions (saved, deleted, error)
 
-For all scopes, the existing site-wide and per-page sections still apply.
+Output is copy in the user's site language. Do not mention any specific framework or library — the frontend-expert and backend-engineer agents pick those at generation time.
 ```
 
 - [ ] **Step 2: Verify**
@@ -465,12 +501,13 @@ Expected: 1.
 Run: `grep -c "UI strings" agents/content-writer.md`
 Expected: 1.
 
-- [ ] **Step 3: Lint**
+Run: `grep -cE "Astro|Next\.js|SvelteKit|React|Vue" agents/content-writer.md`
+Expected: 0.
 
 Run: `tests/lint.sh`
-Expected: `11 passed, 0 failed.` (after Task 1 added the new `/web-builder-dev` command file; backend-engineer not yet created)
+Expected: `11 passed, 0 failed.`
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add agents/content-writer.md
@@ -479,338 +516,276 @@ git commit -m "feat: content-writer adapts content to project scope (UI strings,
 
 ---
 
-## Task 7: Make `frontend-expert` Stack-Aware (5 Stacks)
+## Task 7: Rewrite `frontend-expert` to Pick Stack at Runtime
 
 **Files:**
-- Modify: `agents/frontend-expert.md` (major)
+- Modify: `agents/frontend-expert.md` (rewrite — significantly smaller than v0.1's hardcoded-Astro version)
 
-This is the biggest task in Plan 4. The agent currently only knows Astro+Tailwind. Add per-stack branches for: vanilla, astro (existing), astro+islands, nextjs, sveltekit.
+This is the heart of the stack-agnostic approach. The agent reads brief, style-guide, content, scope, preferences — then picks a frontend stack appropriate for *right now* (Claude's current ecosystem knowledge), generates the project, and records the choice.
 
-- [ ] **Step 1: Read the current agent file**
+- [ ] **Step 1: Rewrite the agent file**
 
-Run: `cat agents/frontend-expert.md`. The current file is ~206 lines and is structured around an Astro+Tailwind project.
+Replace the entire body of `agents/frontend-expert.md` (preserve frontmatter) with:
 
-- [ ] **Step 2: Restructure the file**
+````markdown
+# frontend-expert agent (stack-agnostic)
 
-Use Edit (or full rewrite via Write — whichever is cleaner) to restructure into:
-
-```
-# frontend-expert agent
-
-(intro line)
+You generate a working frontend project. You pick the framework/language at runtime based on the user's scope and preferences — the plugin does NOT prescribe a stack. Choose what is most appropriate **right now**, given current ecosystem maturity, popularity, and fit.
 
 ## Inputs
 
-(read brief, style-guide, content, state.json — same as before)
+Read in this order:
+1. `{projectPath}/.web-builder/state.json` — `scope`, `mode`, `preferences`, `siteLanguage`
+2. `{projectPath}/brief.md` — page list, site name
+3. `{projectPath}/style-guide.md` — palette, typography, spacing, component notes
+4. `{projectPath}/content.md` — per-page content, image URLs
 
-## Stack branching
+If `state.json.chosenStack.frontend` is already populated (from a prior run), respect it — generate in that same stack. The user expects continuity across revisions unless they explicitly ask for a stack change.
 
-Read `state.json.stack`. Branch on the value:
+## Decision: pick the frontend stack
 
-| state.json.stack | Section to follow |
-|---|---|
-| `vanilla` | ## Vanilla branch |
-| `astro+tailwind` | ## Astro branch |
-| `astro+tailwind+preact-islands` | ## Astro+islands branch |
-| `nextjs+tailwind` (or `nextjs+tailwind+prisma+sqlite`) | ## Next.js branch |
-| `sveltekit+tailwind` | ## SvelteKit branch |
+You are deciding between any modern frontend approach available **today**. Your decision should consider, in order:
 
-If `state.json.stack` is unknown, treat as `astro+tailwind` (the default for multi-page-static).
+1. **Scope** — drives the upper bound:
+   - `single-page`: simplest is best. Vanilla HTML/CSS/JS often wins. No build step preferred unless interactivity demands it.
+   - `multi-page-static`: a content-oriented framework that can statically generate multiple pages, or a meta-framework with SSG support.
+   - `interactive-static`: same as multi-page-static but with island/partial-hydration capability for interactive components.
+   - `full-app`: a mature meta-framework that handles routing, server functions, data fetching, and (often) auth out of the box.
 
-For full-app stacks (e.g., `nextjs+tailwind+prisma+sqlite`), only generate the frontend portion. The `backend-engineer` agent generates the API routes and DB schema separately.
+2. **User preferences** (from `state.json.preferences`):
+   - `priority: simple` → lean toward zero-build or minimal-config solutions
+   - `priority: performance` → lean toward small-bundle, fast-hydration solutions
+   - `priority: feature-richness` → lean toward batteries-included frameworks
+   - `priority: claude-decides` (or null in sade mode) → use your judgment; default to the most popular & well-maintained option for the scope
+   - `interactivity: low` → static-first, hydrate sparingly
+   - `interactivity: high` → SPA-like or full reactive framework
+   - `typescript: true` → ensure TS support out of the box
+   - `typescript: false` → plain JavaScript only
+   - `typescript: claude-decides` → default per stack convention
 
-## Vanilla branch
+3. **Current ecosystem snapshot** (use your knowledge as of the run date):
+   - Pick frameworks that are actively maintained, well-documented, with healthy community
+   - Avoid abandoned or niche projects unless they uniquely fit a preference
+   - Avoid bleeding-edge tools that lack production usage
 
-(content for vanilla HTML/CSS/JS — minimal directory: `index.html`, `style.css`, `main.js`, plus per-page HTML files if scope > single-page)
+You are NOT restricted to any specific list. If today the best fit is a framework that didn't exist 12 months ago, pick that. The plugin trusts your judgment.
 
-Layout:
-- `{projectPath}/index.html` — main page
-- `{projectPath}/style.css` — Tailwind compiled output OR raw CSS
-- `{projectPath}/main.js` — minimal JS
-- For multi-page: additional `{page}.html` files at root with kebab-case names
-- No build step needed — files runnable directly via any static server
+## Decision: record your choice
 
-Concrete templates:
-- index.html using palette/typography from style-guide.md
-- style.css with custom properties for the palette
-- main.js minimal (page nav highlight, etc.)
+After deciding, write to `state.json.chosenStack`:
 
-## Astro branch
-
-(existing content from Plan 1 — Astro + Tailwind project structure)
-
-(existing concrete file contents stay)
-
-## Astro+islands branch
-
-Same as Astro branch but with `@astrojs/preact` integration added in `astro.config.mjs` and one or two example interactive components in `src/components/{Name}.tsx` (Preact). Include them in `index.astro` with `client:load`.
-
-Add to package.json dependencies: `@astrojs/preact`, `preact`.
-
-Update astro.config.mjs to include the preact integration.
-
-Add example: a contact form component or a counter component, depending on what content.md describes.
-
-## Next.js branch
-
-(content for Next.js App Router project — for both static-only and full-app cases)
-
-Project layout:
-- `package.json` (deps: next ^15, react ^18, tailwindcss ^3, plus prisma if full-app)
-- `next.config.mjs` (minimal)
-- `tailwind.config.ts` (palette from style-guide)
-- `app/` — App Router structure:
-  - `layout.tsx` — root layout (analog to BaseLayout.astro)
-  - `page.tsx` — home (Ana sayfa)
-  - `{slug}/page.tsx` — one per non-home page
-  - For full-app: `app/api/{route}/route.ts` SHELLS only (backend-engineer fills these)
-- `components/` — Header.tsx, Footer.tsx
-- `globals.css` — Tailwind directives + Google fonts
-
-If full-app: also write `prisma/schema.prisma` SHELL (backend-engineer will populate with models).
-
-After writing files: run `npm install --silent` then `npm run build`. (Use `pnpm` if available; fall back to npm.)
-
-(Concrete templates for each file — Next.js App Router style)
-
-## SvelteKit branch
-
-(content for SvelteKit project)
-
-Project layout:
-- `package.json` (deps: @sveltejs/kit ^2, svelte ^4, vite, tailwindcss)
-- `svelte.config.js`, `vite.config.js`, `tailwind.config.js`
-- `src/routes/+layout.svelte`, `+page.svelte`, `{slug}/+page.svelte`
-- `src/lib/components/` — Header.svelte, Footer.svelte
-- `src/app.css` — Tailwind directives + fonts
-
-Use kit's static adapter (`@sveltejs/adapter-static`) for static scopes; `adapter-auto` for full-app.
-
-After writing: `npm install` + `npm run build`.
-
-(Concrete templates)
-
-## After writing files (all stacks)
-
-Run inside the project directory:
-
-```bash
-pnpm install --silent || npm install --silent
-pnpm run build || npm run build
+```json
+"chosenStack": {
+  "frontend": "<framework name and version, e.g., 'astro@4.16' or 'vanilla' or 'qwik@1.5'>",
+  "backend": <existing value or null>,
+  "database": <existing value or null>,
+  "rationale": "<one or two sentences explaining why this stack fits, in the user's language>"
+}
 ```
 
-If the build fails, fix the offending file and retry. Report failure only after 2 attempts.
+The rationale is user-facing — write it in plain language matching `state.json.siteLanguage`. Example rationales:
+- "Tek sayfa için vanilla HTML/CSS/JS yeterli; build step yok, herhangi bir hosting'de çalışır."
+- "Çok sayfalı statik site için içerik-odaklı bir SSG framework seçtim; kullanıcı tercihi 'simple' olduğu için."
+- "Full-app + 'Python istiyorum' tercihi olduğu için backend'i Python ile yapacağız; frontend tarafında SSR'ı destekleyen modern bir meta-framework seçtim."
+
+## Output: the project files
+
+Generate the project per the stack you picked. Standard expectations:
+
+1. **All required files for the stack to build** — package manifests, config files, entry points, components, styles, assets
+2. **Reflect style-guide.md** — palette → CSS variables / theme config; typography → font loading + scale; spacing → utility classes or design tokens
+3. **Reflect content.md** — page text, headings, images (use Unsplash placeholder URLs from content.md verbatim), nav labels, footer text
+4. **Match the site language** in `state.json.siteLanguage` (set `<html lang>` correctly, etc.)
+5. **Pages map** — each page in brief.md becomes a corresponding file in the framework's routing convention (e.g., `app/page.tsx` or `src/pages/index.astro` or `src/routes/+page.svelte` or `index.html`)
+
+## After writing files
+
+Run from inside the project directory:
+
+1. **Install** — pick the right package manager based on what's installed (`pnpm` if available, else `npm`; for Python-based stacks use `pip` or `uv`; for Go use `go mod tidy`; etc.)
+2. **Build** — run the framework's build command (`npm run build`, `vite build`, `astro build`, `next build`, `go build`, etc.)
+3. If build fails: try once to fix the offending file, then report.
 
 ## Constraints
 
-(same as before — read-only inputs, write only frontend files, etc.)
+- Read brief, style-guide, content, state.json. Write only frontend files.
+- Do not modify brief.md, style-guide.md, content.md, or other agents' outputs.
+- Match siteLanguage everywhere user-visible (page titles, alt text, nav labels).
+- Record your stack pick in `state.json.chosenStack.frontend` AND `chosenStack.rationale`.
+- If `chosenStack.frontend` is already set from a prior run, use that same stack — don't switch unless the user's preferences have explicitly changed.
+- Output a one-line summary: `frontend generated: stack=<your-pick> pages=<N> build=<ok|failed>`
+````
 
-Output one-line summary: `frontend generated: stack={stack} pages={N} build={ok|failed}`.
-```
+- [ ] **Step 2: Verify**
 
-The full file will be ~500-700 lines. Each stack section has its own concrete file templates analogous to the Astro section.
-
-- [ ] **Step 3: Verify the structure**
-
-Run: `grep -nE "^## (Vanilla|Astro|Astro\+islands|Next\.js|SvelteKit) branch" agents/frontend-expert.md`
-Expected: 5 lines (one per stack branch).
-
-Run: `grep -c "state.json.stack" agents/frontend-expert.md`
-Expected: at least 1.
+Run: `head -5 agents/frontend-expert.md`
+Expected: frontmatter with `name: frontend-expert`, tools list.
 
 Run: `wc -l agents/frontend-expert.md`
-Expected: 500-800 lines (large file, reflects the per-stack content).
+Expected: 100-200 lines (much smaller than v0.1's 240 lines because no per-stack templates).
+
+Run: `grep -c "chosenStack" agents/frontend-expert.md`
+Expected: at least 4 (multiple references — read, write, persist).
+
+Run: `grep -cE "^# |^## |^### " agents/frontend-expert.md`
+Expected: at least 8 (h1 + Inputs + Decision (×2) + Output + After + Constraints + sub-sections).
 
 Run: `grep -c '^```' agents/frontend-expert.md`
-Expected: EVEN, large number (each stack has many embedded code blocks).
+Expected: EVEN, around 2-4 (only the chosenStack JSON example block).
 
 Run: `grep -c '^````' agents/frontend-expert.md`
 Expected: 0.
 
-- [ ] **Step 4: Lint**
-
 Run: `tests/lint.sh`
-Expected: `11 passed, 0 failed.` (after Task 1 added the new `/web-builder-dev` command file; backend-engineer not yet created)
+Expected: `11 passed, 0 failed.`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add agents/frontend-expert.md
-git commit -m "feat: frontend-expert handles 5 stacks (vanilla, astro, astro+islands, nextjs, sveltekit)"
+git commit -m "feat: frontend-expert is now stack-agnostic — picks framework at runtime"
 ```
 
 ---
 
-## Task 8: Create `backend-engineer` Agent
+## Task 8: Create `backend-engineer` Agent (Stack-Agnostic)
 
 **Files:**
 - Create: `agents/backend-engineer.md`
 
-For full-app scope only. Generates backend code in 5 stacks (Next.js API routes / Node+Express / Go chi / Java/Spring / Python/FastAPI) with DB integration in 3 options (SQLite-Prisma / Postgres-Prisma / MongoDB-Mongoose).
+For full-app scope only. Stack-agnostic: reads scope + preferences, picks a backend framework + database appropriate for *right now*, generates code, records the choice.
 
-- [ ] **Step 1: Write the agent**
+- [ ] **Step 1: Write the agent file**
 
 Create `agents/backend-engineer.md`:
 
 ````markdown
 ---
 name: backend-engineer
-description: Reads brief.md and content.md (auth flow strings) to produce backend code (API routes, DB schema, auth) in the chosen backend stack. Only invoked for full-app scope.
+description: For full-app scope only. Reads brief and content (auth strings) plus user preferences, picks a backend framework + database appropriate for right now, generates the API + DB schema + auth scaffolding, and records the stack choice in state.json.chosenStack.
 tools: Read, Write, Edit, Bash
 ---
 
-# backend-engineer agent
+# backend-engineer agent (stack-agnostic)
 
-You generate backend code for a full-app project. The frontend is generated by `frontend-expert` in parallel; you handle the API + database + auth.
+You generate backend code for a full-app project. The frontend is generated by `frontend-expert` in parallel. You pick the backend framework + database at runtime — the plugin does NOT prescribe a stack.
 
 ## Inputs
 
 Read in this order:
-1. `{projectPath}/.web-builder/state.json` — `scope` (must be `full-app`), `backend`, `database`
-2. `{projectPath}/brief.md` — feature list (what entities exist, what auth is needed)
-3. `{projectPath}/content.md` "Auth flow strings" section if present — page copy for sign-in / sign-up / reset
+1. `{projectPath}/.web-builder/state.json` — `scope` (must be `full-app`), `preferences`, `chosenStack` (you may run after frontend-expert; respect what it picked)
+2. `{projectPath}/brief.md` — feature list, entities, auth needs
+3. `{projectPath}/content.md` "Auth flow strings" / "UI strings" sections if present
 
 ## Pre-flight
 
-If `state.json.scope` is not `full-app`, exit immediately with:
+If `state.json.scope` is not `full-app`, exit immediately:
 ```
 status: skipped
 reason: not-full-app
 ```
 
-The orchestrator will only invoke you for full-app — but defensive check.
+If `state.json.chosenStack.backend` is already populated (from a prior run), respect it — use the same backend stack.
 
-## Stack branching
+## Decision: pick the backend stack
 
-Read `state.json.backend` and `state.json.database`. Branch on backend:
+Consider, in order:
 
-| state.json.backend | Section |
-|---|---|
-| `nextjs-api` | ## Next.js API routes |
-| `node-express` | ## Node + Express |
-| `go-chi` | ## Go (chi router) |
-| `java-spring` | ## Java / Spring Boot |
-| `python-fastapi` | ## Python / FastAPI |
+1. **`preferences.backendLang`** (the strongest signal):
+   - `same-as-frontend` → use the frontend's framework if it has API capability (most modern meta-frameworks do); otherwise pick a Node-based backend
+   - `node-separate` → a Node-based service in a `backend/` subdirectory
+   - `python` → a Python-based service
+   - `compiled` → Go / Rust / similar
+   - `enterprise-jvm` → JVM-based (Java / Kotlin)
+   - `claude-decides` (or null in sade mode) → default to the simplest viable option for the user's scope. For most users, "same-as-frontend" is simplest. If frontend is static/no-server, default to a Node service.
 
-If unknown: default to `nextjs-api`.
+2. **`preferences.dbStyle`**:
+   - `simple` → file-based DB (SQLite-like, zero setup)
+   - `sql` → relational DB (Postgres or similar — note: requires a running server, document setup in README)
+   - `document` → document DB (MongoDB or similar)
+   - `none` → in-memory only; warn user data is lost on restart
+   - `claude-decides` → start with a simple file-based DB for MVP
 
-DB branching is consistent across BE stacks:
-- `sqlite-prisma`, `postgres-prisma` → use Prisma (Node-based stacks) or equivalent ORM
-- `mongodb-mongoose` → Mongoose (Node-based) or pymongo / java mongo driver depending on BE
-- `none` → skip DB setup
+3. **brief.md feature list**:
+   - Auth → include auth scaffolding (email + password by default; no OAuth in v0.4.0)
+   - CRUD on entities → generate CRUD endpoints
+   - Admin/dashboard → role middleware
 
-## Common deliverables (all stacks)
+4. **Current ecosystem snapshot** (use your knowledge as of run date):
+   - Pick well-maintained, popular frameworks
+   - For each language preference, pick the most natural choice today (e.g., for Python, the dominant fast/async framework — whatever that currently is)
 
-- `README.md` section in the project explaining how to run the backend
-- DB schema / migration if applicable
-- 2-3 example API endpoints inferred from brief (CRUD on the main entity, plus /api/health)
-- Auth scaffolding if brief mentions login (basic email+password, no OAuth in v0.4.0)
-- Dev script (e.g., add to package.json or Makefile)
+## Decision: record your choice
 
-## ## Next.js API routes
+After deciding, write to `state.json.chosenStack`:
 
-(For when frontend is also Next.js — backend lives in same package)
+```json
+"chosenStack": {
+  "frontend": <existing value, set by frontend-expert>,
+  "backend": "<your pick, e.g., 'next-api' or 'fastapi@0.115' or 'go-chi'>",
+  "database": "<your pick, e.g., 'sqlite-prisma' or 'postgres-via-prisma' or 'mongodb-mongoose'>",
+  "rationale": "<existing rationale, OR append your backend reasoning if rationale was empty>"
+}
+```
 
-Generate:
-- `app/api/{entity}/route.ts` — list/create
-- `app/api/{entity}/[id]/route.ts` — get/update/delete
-- `app/api/auth/[...]/route.ts` if auth needed (use NextAuth or simple JWT)
-- `prisma/schema.prisma` populated with models from brief
-- Update `package.json` to add `prisma`, `@prisma/client`, `bcrypt` (if auth)
-- `lib/db.ts` — Prisma client singleton
+If `rationale` already exists (frontend-expert wrote it), prepend your one-line backend reasoning to the existing rationale.
 
-After writing: run `npx prisma generate && npx prisma migrate dev --name init` (silenced).
+## Output: the project files
 
-(Concrete code templates for each route file)
+Generate the project per the stack you picked. Common deliverables:
 
-## ## Node + Express
+1. **Package/dependency manifest** — appropriate to the language (`package.json` for Node, `pyproject.toml` for Python, `go.mod` for Go, `pom.xml` for Java)
+2. **Server entry point** with appropriate configuration
+3. **Routes / endpoints** — at least:
+   - `/api/health` — simple healthcheck
+   - CRUD endpoints for the main entities mentioned in brief.md (one entity = list, get, create, update, delete)
+   - Auth endpoints if brief mentions login: signup, login, logout (and reset-password if `preferences.priority` includes feature-richness)
+4. **Database schema / migration**:
+   - For SQL: schema file + migration tooling appropriate to the framework (e.g., Prisma migrations, Alembic, Flyway)
+   - For document DBs: schema/model files
+   - For `none`: in-memory data structures with a warning at startup
+5. **Auth middleware** (if auth is needed): hash passwords, JWT or session-based auth, middleware to protect routes
+6. **README section** explaining how to run the backend (env vars, dev command, migration command)
 
-(For when frontend is Astro/SvelteKit and backend is a separate Node service)
+If the frontend stack already has its own backend conventions (e.g., the frontend is a meta-framework with built-in API routes), generate the backend files in that framework's expected location instead of a separate `backend/` directory. Otherwise, use a `backend/` subdirectory at the project root.
 
-Generate in a `backend/` subdirectory:
-- `backend/package.json` (express, prisma, bcrypt for auth)
-- `backend/src/server.ts` — Express app + middleware
-- `backend/src/routes/{entity}.ts` — CRUD endpoints
-- `backend/src/auth/middleware.ts` if auth
-- `backend/prisma/schema.prisma`
-- `backend/.env.example`
+## After writing files
 
-After writing: `cd backend && npm install && npx prisma generate`.
+Run install + build for the language you picked:
+- Node: `pnpm install || npm install`, then a build/check command
+- Python: `pip install -e .` or `uv sync`, then a syntax check
+- Go: `go mod tidy && go build ./...`
+- Java: `mvn package` (skip if maven absent — warn user)
+- For DB migrations: run them if non-destructive (e.g., Prisma `migrate dev` on SQLite is safe; on Postgres only if connection is configured)
 
-(Concrete templates)
-
-## ## Go (chi router)
-
-(For when user prefers Go)
-
-Generate in `backend/`:
-- `backend/go.mod` with chi, sqlite/pgx, bcrypt deps
-- `backend/main.go` — chi mux + routes
-- `backend/handlers/{entity}.go` — CRUD
-- `backend/db/db.go` — DB connection (sqlite via mattn/go-sqlite3, postgres via jackc/pgx)
-- `backend/auth/middleware.go` if auth
-- `backend/migrations/0001_init.sql`
-
-After writing: `cd backend && go mod tidy && go build`.
-
-(Concrete templates with Go idioms)
-
-## ## Java / Spring Boot
-
-Generate in `backend/`:
-- `backend/pom.xml` — Spring Boot starter web, jpa, security if auth
-- `backend/src/main/java/com/{siteSlug}/Application.java`
-- `backend/src/main/java/com/{siteSlug}/controllers/{Entity}Controller.java`
-- `backend/src/main/java/com/{siteSlug}/repositories/{Entity}Repository.java`
-- `backend/src/main/java/com/{siteSlug}/entities/{Entity}.java`
-- `backend/src/main/resources/application.properties` — DB connection
-- DB migration via Flyway: `backend/src/main/resources/db/migration/V1__init.sql`
-
-After writing: `cd backend && mvn package` (skipped if maven not installed; warn user).
-
-(Concrete templates)
-
-## ## Python / FastAPI
-
-Generate in `backend/`:
-- `backend/pyproject.toml` (or requirements.txt) with fastapi, uvicorn, sqlalchemy, alembic, passlib if auth
-- `backend/app/main.py` — FastAPI app + routes import
-- `backend/app/routers/{entity}.py` — CRUD
-- `backend/app/auth/jwt.py` if auth
-- `backend/app/db.py` — SQLAlchemy session
-- `backend/app/models/{entity}.py` — SQLAlchemy model
-- `backend/alembic/versions/0001_init.py`
-
-After writing: `cd backend && pip install -e . && alembic upgrade head` (or similar).
-
-(Concrete templates)
-
-## DB-specific notes (all stacks)
-
-- **SQLite** — file at `backend/data.db` (or `prisma/dev.db` for Prisma); easy local dev, no server needed
-- **Postgres** — connection string from env `DATABASE_URL`; the agent assumes a running Postgres instance and notes this in README
-- **MongoDB** — for Node stacks: Mongoose models; for Python: motor / pymongo
-- **none** — skip all DB code; backend is in-memory only (warn user this means data is lost on restart)
+If something fails, try once to fix and retry. Report failure if 2 attempts both fail.
 
 ## Constraints
 
-- Read brief.md, content.md, state.json. Write only backend files (typically inside `backend/` subdirectory; for nextjs-api, into the existing Next.js project's `app/api/` and `prisma/`).
+- Read brief, content, state.json. Write only backend files.
 - Do not modify frontend files (frontend-expert owns those).
-- Output one-line summary: `backend generated: stack={backend} db={database} routes={N} build={ok|failed}`.
+- Do not modify brief.md, style-guide.md, content.md.
+- Record your picks in `state.json.chosenStack.{backend, database}`.
+- If `chosenStack.backend` is already set from a prior run, use that same stack.
+- Output a one-line summary: `backend generated: backend=<your-backend> db=<your-db> routes=<N> build=<ok|failed>`
 ````
-
-This file will be ~600-800 lines once concrete templates are filled in. Use this skeleton; expand each backend section with real, working code templates.
 
 - [ ] **Step 2: Verify**
 
 Run: `head -5 agents/backend-engineer.md`
 Expected: frontmatter with `name: backend-engineer`, `tools: Read, Write, Edit, Bash`.
 
-Run: `grep -nE "^## ## " agents/backend-engineer.md`
-Expected: 5 backend stack sections.
+Run: `wc -l agents/backend-engineer.md`
+Expected: 100-200 lines (small, because no per-stack templates).
 
-Run: `grep -c '^```' agents/backend-engineer.md`
-Expected: EVEN, around 30-50 (multiple code examples per BE stack).
+Run: `grep -c "chosenStack" agents/backend-engineer.md`
+Expected: at least 4.
+
+Run: `grep -cE "Express|FastAPI|Django|Spring|chi|gin|fastify|hono" agents/backend-engineer.md`
+Expected: 0. (Critical — no specific frameworks named.)
+
+Run: `grep -c "^## " agents/backend-engineer.md`
+Expected: at least 6 (Inputs, Pre-flight, Decision×2, Output, After, Constraints).
 
 Run: `grep -c '^````' agents/backend-engineer.md`
 Expected: 0.
@@ -822,7 +797,7 @@ Expected: `12 passed, 0 failed.` (Task 1's new command + Task 8's new agent file
 
 ```bash
 git add agents/backend-engineer.md
-git commit -m "feat: add backend-engineer agent (Next.js API / Node+Express / Go / Java / Python)"
+git commit -m "feat: add backend-engineer agent (stack-agnostic, picks framework + DB at runtime)"
 ```
 
 ---
@@ -832,51 +807,65 @@ git commit -m "feat: add backend-engineer agent (Next.js API / Node+Express / Go
 **Files:**
 - Modify: `skills/web-builder-orchestrator/SKILL.md`
 
-The orchestrator's step 3 currently runs ui-ux-designer → content-writer → frontend-expert sequentially. For full-app, we need to add backend-engineer running in parallel with frontend-expert. Also, for single-page scope, content-writer's output is smaller and could run in parallel with designer.
+The orchestrator's step 3 currently runs ui-ux-designer → content-writer → frontend-expert sequentially. For full-app, add backend-engineer in parallel with frontend-expert.
 
-- [ ] **Step 1: Read current orchestrator step 3**
+- [ ] **Step 1: Read step 3**
 
-Run: `grep -nA 30 "^3\. " skills/web-builder-orchestrator/SKILL.md` to find the agent execution graph section.
+Run: `grep -nA 30 "From this point on" skills/web-builder-orchestrator/SKILL.md`
 
-- [ ] **Step 2: Replace step 3's agent graph with scope-aware version**
+- [ ] **Step 2: Replace the agent graph**
 
-Use Edit to replace the sequential A→B→C list with this graph definition:
+Use Edit to replace the existing Step A/B/C list inside step 3 with:
 
 ````markdown
 3. From this point on, **all file operations happen inside the project subdirectory.** `cd` into it before invoking agents. Run the agent execution graph against the project directory. The graph is scope-aware:
 
    **Sequential phase 1 (always):**
-   
+
    **Step A — `ui-ux-designer` agent**
-   
+
    Use the `Agent` tool with `subagent_type: "ui-ux-designer"`. Pass:
-   
+
    > Project path: `{projectPath}`. Read brief.md and write style-guide.md per your instructions.
-   
+
    Wait for completion. Append to `state.json.agentRuns`. Standard retry policy.
 
-   **Parallel phase 2 (after designer completes):**
-   
+   **Sequential phase 2 (after designer completes):**
+
    **Step B — `content-writer` agent**
-   
-   Use Agent tool with `subagent_type: "content-writer"`. Same prompt pattern.
-   
+
+   Same pattern, `subagent_type: "content-writer"`.
+
    **Parallel phase 3 (after content-writer completes):**
-   
+
    **Step C — `frontend-expert` agent**
-   
-   Use Agent tool with `subagent_type: "frontend-expert"`. Same prompt pattern. The agent reads state.json.stack and branches.
-   
+
+   Use Agent tool with `subagent_type: "frontend-expert"`. The agent reads scope + preferences and picks a frontend stack at runtime. After it runs, `state.json.chosenStack.frontend` is populated.
+
    **Step D — `backend-engineer` agent (only if scope = full-app)**
-   
-   In parallel with Step C: use Agent tool with `subagent_type: "backend-engineer"`. The agent reads state.json.{backend, database} and branches. Skip this step entirely if scope is not `full-app`.
-   
+
+   In parallel with Step C: use Agent tool with `subagent_type: "backend-engineer"`. The agent reads scope + preferences (and may read `state.json.chosenStack.frontend` after frontend-expert completes — minor sequencing note: run backend-engineer SLIGHTLY AFTER frontend-expert starts to give it a chance to read the frontend pick, OR run them truly in parallel and let the backend agent default if frontend pick isn't yet known). Skip this step entirely if scope is not `full-app`.
+
    Wait for both C and D to complete before proceeding.
 ````
 
-(Steps E onward — accessibility-reviewer in Plan 5 — would slot in here in the future.)
+- [ ] **Step 3: Update impact analysis table to mention backend**
 
-- [ ] **Step 3: Verify**
+Locate the impact analysis table in step 1c.2. Update the rows to mention backend-engineer where appropriate:
+
+```
+| Change category | Agents to re-run (in order) |
+|---|---|
+| `style` | `ui-ux-designer`, `frontend-expert` |
+| `content` | `content-writer`, `frontend-expert` (and `backend-engineer` if content includes UI strings used by API responses) |
+| `structure` | `ui-ux-designer` (if layout shifts), `content-writer`, `frontend-expert` |
+| `behavior` | `frontend-expert` (and `backend-engineer` if change involves auth or API endpoints) |
+| `technical` | depends on sub-detail: preference change → all agents re-pick + regenerate; deploy target change → deliver skill's deploy flow |
+| `undo` | (no agents — see step 1d) |
+| `cancel` | exit cleanly |
+```
+
+- [ ] **Step 4: Verify**
 
 Run: `grep -c "subagent_type: \"backend-engineer\"" skills/web-builder-orchestrator/SKILL.md`
 Expected: 1.
@@ -884,31 +873,10 @@ Expected: 1.
 Run: `grep -c "scope = full-app" skills/web-builder-orchestrator/SKILL.md`
 Expected: at least 1.
 
-Run: `grep -c "Parallel phase" skills/web-builder-orchestrator/SKILL.md`
-Expected: at least 1.
-
-- [ ] **Step 4: Update impact analysis table to handle backend changes**
-
-Locate the impact analysis table in step 1c.2. Add a new column or extend `technical` to mention backend changes. Updated table:
-
-```
-| Change category | Agents to re-run (in order) |
-|---|---|
-| `style` | `ui-ux-designer`, `frontend-expert` |
-| `content` | `content-writer`, `frontend-expert` |
-| `structure` | `ui-ux-designer` (if layout shifts), `content-writer`, `frontend-expert` |
-| `behavior` | `frontend-expert` (and `backend-engineer` if the change involves form submission, auth, or any server interaction) |
-| `technical` | depends on sub-detail: stack/scope change → all agents re-run; deploy target change → deliver skill's deploy flow; backend-only change → `backend-engineer` only |
-| `undo` | (no agents — see step 1d) |
-| `cancel` | exit cleanly |
-```
-
-- [ ] **Step 5: Lint**
-
 Run: `tests/lint.sh`
 Expected: `12 passed, 0 failed.`
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add skills/web-builder-orchestrator/SKILL.md
@@ -917,22 +885,18 @@ git commit -m "feat: orchestrator runs frontend+backend in parallel for full-app
 
 ---
 
-## Task 10: Update `revise` Skill — Stack/Scope Sub-Options
+## Task 10: Update `revise` Skill — Preferences-Change Option
 
 **Files:**
 - Modify: `skills/web-builder-revise/SKILL.md`
 
-The `technical` category in revise asks about "deploy target / site name / SEO / performance". Add stack and scope changes as new sub-options.
+The `technical` category currently asks about deploy target / SEO / performance. Add a "preferences-change" sub-option that triggers agents to re-pick the stack. This replaces a "stack-change" option (which would name specific frameworks — we don't do that).
 
-- [ ] **Step 1: Locate technical category section**
+- [ ] **Step 1: Replace the technical category sub-question**
 
-In `skills/web-builder-revise/SKILL.md`, find `### If user picks E (technical)`.
+Use Edit to replace:
 
-- [ ] **Step 2: Replace the sub-question list**
-
-Use Edit to replace the current sub-question:
-
-```markdown
+```
 > Teknik konularda?
 >
 > A) Deploy hedefi değiştir (örn. Cloudflare → Vercel)
@@ -943,41 +907,49 @@ Use Edit to replace the current sub-question:
 
 with:
 
-```markdown
+```
 > Teknik konularda?
 >
 > A) Deploy hedefi değiştir (örn. Cloudflare → Vercel)
 > B) Site adı / URL slug değiştir
 > C) SEO meta (title, description) değiştir
 > D) Performance / cache ayarları
-> E) Stack değiştir (örn. Astro → Next.js — siteyi baştan üreteceğim)
-> F) Scope değiştir (örn. tek sayfa → çok sayfalı — büyük değişiklik)
-> G) Backend stack değiştir (sadece full-app için, örn. Next.js API → Go)
-> H) Database değiştir (sadece full-app için)
+> E) Tercihlerimi değiştir (interaktivite, performans, dil tercihi vs. — agent yeniden stack seçecek)
+> F) Scope değiştir (örn. tek sayfa → çok sayfalı — büyük değişiklik, site yeniden üretilir)
 ```
 
-For E and F, surface a confirmation: "Bu büyük bir değişiklik — site yeniden üretilecek. Devam edelim mi?" before returning the change record.
+For E (preferences-change): the revise skill walks the user through dev-mode preference questions again (just like Q2-dev-prefs in intake), captures new values, returns:
 
-For G and H, only show in revise if `state.json.scope == "full-app"`. If scope is not full-app, skip these options.
+```
+category: technical
+detail: preferences-change
+description: <summary of what changed>
+new-preferences: <object with the new preference values>
+```
 
-- [ ] **Step 3: Verify**
+The orchestrator on receiving this re-runs all agents, which will read new preferences and may pick a different stack (recorded in `state.json.chosenStack`).
 
-Run: `grep -c "Stack değiştir" skills/web-builder-revise/SKILL.md`
+For F (scope-change): the revise skill confirms the new scope, returns `{category: technical, detail: scope-change, new-scope: <value>}`. The orchestrator regenerates everything for the new scope.
+
+- [ ] **Step 2: Verify**
+
+Run: `grep -c "Tercihlerimi değiştir" skills/web-builder-revise/SKILL.md`
 Expected: 1.
 
-Run: `grep -c "Backend stack değiştir" skills/web-builder-revise/SKILL.md`
+Run: `grep -c "Scope değiştir" skills/web-builder-revise/SKILL.md`
 Expected: 1.
 
-- [ ] **Step 4: Lint**
+Run: `grep -cE "Astro|Next\.js|SvelteKit|Vue|React" skills/web-builder-revise/SKILL.md`
+Expected: 0. (No framework names — we ask about preferences, not stacks.)
 
 Run: `tests/lint.sh`
 Expected: `12 passed, 0 failed.`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add skills/web-builder-revise/SKILL.md
-git commit -m "feat: revise skill technical category gains stack/scope/backend/db options"
+git commit -m "feat: revise skill technical category gains preferences/scope change (no stack names)"
 ```
 
 ---
@@ -987,31 +959,30 @@ git commit -m "feat: revise skill technical category gains stack/scope/backend/d
 **Files:**
 - Modify: `agents/deployer.md`
 
-Currently deployer treats all scopes the same. Spec says full-app's default is Vercel (not Cloudflare Pages). Add a hint at the top of the deployer's pre-flight that surfaces the recommended target per scope.
+Deployer continues to support the same 5 deploy targets (Cloudflare Pages / Vercel / Netlify / GitHub Pages / local). Spec says full-app's recommended target is Vercel (broad serverless support); statics → Cloudflare Pages. Add a scope-aware note. (Frameworks change but deployment platforms don't — these target names are stable.)
 
-- [ ] **Step 1: Edit pre-flight section**
+- [ ] **Step 1: Add scope-aware note in pre-flight**
 
-Open `agents/deployer.md` and locate the `## Pre-flight (for all cloud targets)` section.
-
-- [ ] **Step 2: Add scope-aware default note**
-
-Insert at the top of the pre-flight section, before the dist-missing check:
+Insert at the top of the pre-flight section in `agents/deployer.md`:
 
 ```markdown
 Read `state.json.scope`. The recommended deploy target depends on scope:
 
-- `single-page`, `multi-page-static`, `interactive-static` → **Cloudflare Pages** (free tier, custom domain easy)
-- `full-app` → **Vercel** (native Next.js / SvelteKit support, serverless functions for API routes)
+- `single-page`, `multi-page-static`, `interactive-static` → **Cloudflare Pages** (free tier, custom domain easy, CDN included)
+- `full-app` → **Vercel** (broadest support for server functions, edge, modern meta-frameworks)
 
-The deliver skill will already have asked the user; this is just for your reference. If the user chose a target inappropriate for the scope (e.g., Cloudflare Pages for a Next.js full-app), warn them via the `human-readable` field but proceed with their choice — they may have their reasons.
+The deliver skill prompts the user; this is for your awareness. If the user picked an unusual combination (e.g., Cloudflare Pages for a full-app), warn via `human-readable` but still proceed — they may know what they're doing.
 ```
 
-- [ ] **Step 3: Lint**
+- [ ] **Step 2: Verify**
+
+Run: `grep -c "single-page\|multi-page-static\|interactive-static" agents/deployer.md`
+Expected: at least 1.
 
 Run: `tests/lint.sh`
 Expected: `12 passed, 0 failed.`
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add agents/deployer.md
@@ -1020,18 +991,14 @@ git commit -m "docs: deployer documents scope-aware target recommendations"
 
 ---
 
-## Task 12: Update Deliver Skill — Deploy Default Per Scope
+## Task 12: Update Deliver Skill — Scope-Aware Deploy Default
 
 **Files:**
 - Modify: `skills/web-builder-deliver/SKILL.md`
 
-Deploy prompt currently says "A) Cloudflare Pages (önerilen)". For full-app, the recommendation should be Vercel. Make the recommendation dynamic.
+Make the deploy prompt's "(önerilen)" label dynamic based on scope.
 
-- [ ] **Step 1: Locate deploy prompt**
-
-In `skills/web-builder-deliver/SKILL.md`, find step 5 (the deploy prompt with options A-E).
-
-- [ ] **Step 2: Update the option labels**
+- [ ] **Step 1: Update deploy prompt option labels**
 
 Use Edit to replace:
 
@@ -1044,35 +1011,35 @@ with:
 
 ```
    > A) Cloudflare Pages ({"önerilen — en cömert ücretsiz plan, custom domain kolay" if scope is static, otherwise "iyi statik seçenek"})
-   > B) Vercel ({"önerilen — Next.js / SvelteKit için en doğal" if scope is full-app, otherwise "Next.js için iyi, statik için de uygun"})
+   > B) Vercel ({"önerilen — modern full-app için en doğal" if scope is full-app, otherwise "full-app için en iyi, statik için de uygun"})
 ```
 
-The text inside `{}` is a directive to the skill: "show this label if the condition holds, otherwise the alternative". The skill can render the right label by reading state.json.scope.
+The braces denote runtime conditional labels — the skill renders the right label by reading `state.json.scope`.
 
-- [ ] **Step 3: Verify**
+- [ ] **Step 2: Verify**
 
 Run: `grep -c "önerilen — en cömert" skills/web-builder-deliver/SKILL.md`
 Expected: 1.
 
-Run: `grep -c "önerilen — Next.js / SvelteKit" skills/web-builder-deliver/SKILL.md`
+Run: `grep -c "önerilen — modern full-app" skills/web-builder-deliver/SKILL.md`
 Expected: 1.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add skills/web-builder-deliver/SKILL.md
-git commit -m "feat: deploy prompt recommends scope-appropriate target (CF Pages vs Vercel)"
+git commit -m "feat: deploy prompt recommends scope-appropriate target"
 ```
 
 ---
 
-## Task 13: Add Fixtures for New Scopes
+## Task 13: Add Fixtures for New Scopes (Preferences-Based)
 
 **Files:**
 - Create: `tests/fixtures/sample-brief-single-page.md`
 - Create: `tests/fixtures/sample-brief-full-app.md`
 
-Reference fixtures for the new scopes so smoke tests have concrete inputs.
+These fixtures use the new brief format (Scope + Preferences, no stack names).
 
 - [ ] **Step 1: Write `tests/fixtures/sample-brief-single-page.md`**
 
@@ -1083,7 +1050,7 @@ Reference fixtures for the new scopes so smoke tests have concrete inputs.
 single-page
 
 ## Amaç
-Ada Yılmaz'ın yazılım geliştirici CV / portfolio tek sayfası. Kendi adıyla domain alacak (ada.dev gibi).
+Ada Yılmaz'ın yazılım geliştirici CV / portfolio tek sayfası. Kendi adıyla domain alacak.
 
 ## Hedef Kitle
 İşveren ve teknik recruiter'lar.
@@ -1100,13 +1067,12 @@ Hazır stil: minimalist (siyah-beyaz + bir accent rengi)
 ## Davranış / Etkileşim
 - Tek sayfa, scroll-to-section navigasyonu yeterli.
 
-## Teknik
-- Stack: vanilla
-- Backend: n/a
-- Database: n/a
+## Preferences
+- Priority: simple
+- Interactivity: low
+- Backend language: null
+- Database style: null
 - TypeScript: false
-- Linter: false
-- Deploy hedefi: Cloudflare Pages
 ```
 
 - [ ] **Step 2: Write `tests/fixtures/sample-brief-full-app.md`**
@@ -1141,20 +1107,19 @@ Hazır stil: kurumsal (mavi-gri palet, sade)
 - CRUD: görev oluştur, düzenle, sil, atayan değiştir
 - Real-time: yok (manuel refresh yeterli)
 
-## Teknik
-- Stack: nextjs+tailwind
-- Backend: nextjs-api
-- Database: sqlite-prisma
+## Preferences
+- Priority: feature-richness
+- Interactivity: high
+- Backend language: same-as-frontend
+- Database style: simple
 - TypeScript: true
-- Linter: true
-- Deploy hedefi: Vercel
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add tests/fixtures/sample-brief-single-page.md tests/fixtures/sample-brief-full-app.md
-git commit -m "test: add brief fixtures for single-page and full-app scopes"
+git commit -m "test: add brief fixtures for single-page and full-app scopes (preferences-based)"
 ```
 
 ---
@@ -1165,81 +1130,84 @@ git commit -m "test: add brief fixtures for single-page and full-app scopes"
 - Modify: `tests/smoke-test.md`
 
 Add Tests 11-14:
-- Test 11: single-page scope sade mode (vanilla output)
-- Test 12: full-app scope sade mode (Next.js + SQLite)
-- Test 13: dev mode multi-page-static with stack override (user picks Next.js instead of Astro)
-- Test 14: revise — change scope (multi-page → interactive)
+- Test 11: single-page sade mode — agent picks a stack, builds successfully
+- Test 12: full-app sade mode — frontend AND backend agents run; both pick stacks; both build
+- Test 13: dev mode with preference for "Python on backend" — backend-engineer picks a Python framework
+- Test 14: revise — change preferences (E option), agent re-picks stack
+
+Critically: smoke tests **don't pin specific stack names**. They verify behavior:
+- "After Test 11, `state.json.chosenStack.frontend` is non-null"
+- "After Test 11, the build succeeds (some build command exited 0)"
+- Not: "After Test 11, package.json has Astro as a dependency"
 
 - [ ] **Step 1: Append the new tests just before `## Pass criteria`**
 
-(Same insertion approach as previous plans — use Edit to find `## Pass criteria` and insert the new tests above it.)
+Use Edit. Insert this content before the existing `## Pass criteria` line:
 
-Test 11 outline:
-```
+````markdown
 ## Test 11: Single-page scope (sade mode)
 
 1. Run `/web-builder` in a clean dir.
 2. At the scope question, pick A (tek sayfa).
 3. Continue with default content + minimalist style.
-4. Plugin generates vanilla HTML/CSS/JS site (no node_modules).
-5. Verify: open index.html in browser.
+4. Plugin generates a project. The agent picks whatever it deems best for "tek sayfa" — could be vanilla HTML/CSS/JS, could be a tiny static site framework, depending on Claude's current view.
+5. Verify: the project builds (or runs without a build, if vanilla); `state.json.chosenStack.frontend` is populated; `state.json.chosenStack.rationale` is non-empty.
 
-Pass: index.html exists, opens directly without any build step, has site title from content.md, palette from style-guide.md visible.
-```
+Pass:
+- `state.json.chosenStack.frontend` is non-null and reasonable for single-page (the rationale should explain "why this stack for a one-pager")
+- The project either has no build step (vanilla case) or `npm run build` (or equivalent) succeeds
+- Generated files reflect content.md (site title, sections) and style-guide.md (palette in CSS)
 
-Test 12 outline:
-```
 ## Test 12: Full-app scope (sade mode)
 
 1. Run `/web-builder` in a clean dir.
 2. At scope question, pick D (üye girişi / sipariş / veri kaydı).
-3. Use the takim-takip example from sample-brief-full-app.md as inspiration for your answers.
-4. Plugin generates Next.js + Prisma + SQLite project.
-5. Both frontend-expert and backend-engineer ran (verified in state.json.agentRuns).
-6. Verify: `npm install && npm run build` succeeds.
+3. Use the takim-takip example from sample-brief-full-app.md as inspiration for your answers (or any small CRUD app description).
+4. Plugin runs frontend-expert AND backend-engineer (state.json.agentRuns has both, with status=success).
+5. Both agents populate state.json.chosenStack (frontend, backend, database, rationale).
 
-Pass: dist exists OR `next build` succeeds; prisma/schema.prisma has models; app/api/ has route files; sign-in / dashboard pages exist.
-```
+Pass:
+- `state.json.chosenStack.frontend`, `chosenStack.backend`, `chosenStack.database` are all non-null
+- The build/install commands run successfully (whatever they are for the picked stacks)
+- The project has at least: a way to run the frontend (dev or preview command), a way to run the backend, a database file or migration script
+- An `/api/health` endpoint or equivalent exists
 
-Test 13 outline:
-```
-## Test 13: Dev mode with stack override
+## Test 13: Dev mode with backend language preference
 
 1. Run `/web-builder-dev` in a clean dir.
-2. At scope, pick B (multi-page-static).
-3. At stack question, pick D (Next.js + Tailwind) — overriding the Astro default.
-4. Continue with defaults.
-5. Plugin generates Next.js multi-page site (NOT Astro).
+2. At scope, pick D (full-app).
+3. At preference questions, set `backendLang` to `python` (option C).
+4. Plugin generates the project; backend-engineer's pick should be a Python framework (whatever it considers best for full-app + Python today).
 
-Pass: package.json has next as dep; app/ directory exists; no astro.config.mjs.
-```
+Pass:
+- `state.json.preferences.backendLang` is `python`
+- `state.json.chosenStack.backend` is a Python-based framework (rationale mentions Python)
+- The backend directory has Python project files (`pyproject.toml` or `requirements.txt`, `.py` source files)
 
-Test 14 outline:
-```
-## Test 14: Revise — scope change (multi-page → interactive)
+## Test 14: Revise — change preferences (re-pick stack)
 
-1. After Test 1 generation succeeds, run `/web-builder` again.
-2. Pick A (devam et / revize), then E (technical), then F (Scope değiştir).
-3. Pick interactive-static.
-4. Plugin warns "büyük değişiklik" and asks confirmation.
-5. Confirm.
-6. Plugin re-runs all agents; new project structure has Astro+islands.
+1. After Test 11 generation succeeds, run `/web-builder` again.
+2. Pick A (devam et / revize), then E (technical), then E (Tercihlerimi değiştir).
+3. Walk through the preference questions; change `priority` from `simple` to `feature-richness`.
+4. Plugin regenerates; the frontend-expert may pick a different stack (richer framework) and update `state.json.chosenStack.frontend`.
 
-Pass: state.json.scope is now interactive-static; package.json has @astrojs/preact; an example interactive component exists in src/components/.
-```
+Pass:
+- `state.json.preferences.priority` is updated to `feature-richness`
+- A `Pre-revision snapshot` commit precedes the change
+- A `Revision: technical — preferences-change` commit follows
+- `state.json.chosenStack.frontend` may differ from before; rationale updated
+````
 
-(Each test gets its own h2 section; full body included in the smoke-test doc.)
-
-- [ ] **Step 2: Verify test count**
+- [ ] **Step 2: Verify**
 
 Run: `grep -nE "^## Test [0-9]+:" tests/smoke-test.md`
-Expected: 14 test sections (Tests 1-14).
+Expected: 14 tests (Tests 1-14).
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add tests/smoke-test.md
-git commit -m "test: smoke tests for single-page, full-app, dev mode, scope-change revision"
+git commit -m "test: smoke tests for new scopes + preference-based revision (no stack pinning)"
 ```
 
 ---
@@ -1252,23 +1220,22 @@ git commit -m "test: smoke tests for single-page, full-app, dev mode, scope-chan
 
 - [ ] **Step 1: Replace README Status section**
 
-Use Edit to change Status to:
+Use Edit to change Status from v0.3.0 to:
 
 ```markdown
 ## Status
 
-**v0.4.0.** All 4 site scopes supported (single page, multi-page static, interactive static, full app), in sade or dev mode.
+**v0.4.0.** All 4 site scopes supported (single page, multi-page static, interactive static, full app), in sade or dev mode. Stack-agnostic — Claude picks the best framework/language for your project at generation time.
 
 - ✅ Generate any of 4 scope types from Q&A
-- ✅ Sade mode: plugin picks stack defaults silently
-- ✅ Dev mode (`/web-builder-dev`): user overrides frontend / backend / database / TypeScript / lint
-- ✅ 5 frontend stacks supported (vanilla / Astro / Astro+islands / Next.js / SvelteKit)
-- ✅ 5 backend stacks for full-app (Next.js API / Node+Express / Go / Java/Spring / Python/FastAPI)
-- ✅ 3 database options (SQLite / Postgres / MongoDB) plus none
+- ✅ Sade mode: minimal Q&A, plugin agents pick stack silently
+- ✅ Dev mode (`/web-builder-dev`): user expresses preferences (interactivity / performance / preferred backend language); agent picks accordingly
+- ✅ Stack-agnostic plugin: no hardcoded framework list. The agents pick from current ecosystem at runtime — future-proof against framework churn
+- ✅ Stack pick recorded in `state.json.chosenStack` so revisions stay consistent
 - ✅ Preview locally with one click
 - ✅ Deploy to Cloudflare Pages, Vercel, Netlify, or GitHub Pages (scope-aware default)
 - ✅ Auto git initialization in sade mode
-- ✅ Revise existing projects with structured Q&A + impact analysis + undo
+- ✅ Revise existing projects: structured Q&A + impact analysis + undo + preferences-change
 
 Not yet supported (coming in later versions): SEO/accessibility agents, custom domain automation, multi-language site output, public Claude Code plugin distribution.
 ```
@@ -1278,21 +1245,23 @@ Not yet supported (coming in later versions): SEO/accessibility agents, custom d
 Replace the architecture one-liner with:
 
 ```
-Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`) handle the dialog. Agents (`ui-ux-designer`, `content-writer`, `frontend-expert`, `backend-engineer`, `deployer`) write the actual files in their own context — each is stack/scope-aware (reads `state.json` and branches). State lives in `state.json` plus a few human-readable markdown files.
+Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`) handle the dialog. Worker agents (`ui-ux-designer`, `content-writer`, `frontend-expert`, `backend-engineer`, `deployer`) write the actual files in their own context. `frontend-expert` and `backend-engineer` are stack-agnostic — they pick the framework/language at runtime based on user preferences and current ecosystem knowledge, then record the choice in `state.json.chosenStack`.
 ```
 
-- [ ] **Step 3: Update Use section**
+- [ ] **Step 3: Add a small "Use" subsection for dev mode**
 
-Add a paragraph about dev mode:
-
-```markdown
-For technical users who want to pick the stack (Astro vs Next.js vs SvelteKit, Node vs Go vs Python backend, SQLite vs Postgres):
+Insert this paragraph at the end of the Use section:
 
 ```
+For technical users who want to influence the stack pick (preference for Python on backend, "I want it as simple as possible", "I prioritize performance", etc.):
+
+```
+
 /web-builder-dev
+
 ```
 
-Same Q&A flow but with stack-choice questions added.
+Same flow but with preference questions added. The plugin still picks the framework — but informed by your preferences.
 ```
 
 - [ ] **Step 4: Bump plugin.json version**
@@ -1307,8 +1276,11 @@ Expected: `0.4.0`.
 Run: `grep -c "v0.4.0" README.md`
 Expected: at least 1.
 
+Run: `grep -c "stack-agnostic" README.md`
+Expected: at least 1.
+
 Run: `grep -c "/web-builder-dev" README.md`
-Expected: at least 1 (in the Use section).
+Expected: at least 1.
 
 Run: `tests/lint.sh`
 Expected: `12 passed, 0 failed.`
@@ -1317,7 +1289,7 @@ Expected: `12 passed, 0 failed.`
 
 ```bash
 git add README.md plugin.json
-git commit -m "docs: bump to v0.4.0 (multi-scope + multi-stack + dev mode shipped)"
+git commit -m "docs: bump to v0.4.0 (multi-scope + dev mode + stack-agnostic agents)"
 ```
 
 ---
@@ -1331,33 +1303,41 @@ Expected: `12 passed, 0 failed.`
 
 - [ ] **Step 2: Structural smoke test — single-page sade mode**
 
-Create a temp project, copy `sample-brief-single-page.md` as the brief, write a sample state.json with `scope: single-page, stack: vanilla, mode: simple`, and dispatch the frontend-expert agent. Verify it generates `index.html`, `style.css`, `main.js` (no node_modules, no build step).
+Set up a temp project with `sample-brief-single-page.md` as `brief.md` plus minimal style-guide and content; write a sample `state.json` with `scope: single-page, mode: simple, chosenStack: null`. Dispatch a subagent acting as `frontend-expert`. Verify:
+- The agent reads state.json + brief
+- The agent picks SOME frontend stack (records in chosenStack.frontend)
+- The agent generates project files appropriate to its pick
+- The project builds OR runs without build (vanilla case)
+
+Don't pin which stack the agent picks. Verify the BEHAVIOR is correct.
 
 - [ ] **Step 3: Structural smoke test — full-app sade mode**
 
-Similar setup with full-app fixture; dispatch frontend-expert AND backend-engineer in sequence (or simulate parallel dispatch). Verify:
-- frontend-expert produces Next.js project files (app/, package.json with next dep)
-- backend-engineer produces app/api/ routes + prisma/schema.prisma
+Similar setup with `sample-brief-full-app.md`. Dispatch frontend-expert AND backend-engineer (sequentially is fine for smoke). Verify:
+- Both populate state.json.chosenStack
+- Both produce buildable projects (whatever stacks they picked)
+- Backend generates `/api/health` (or equivalent healthcheck) and CRUD endpoints
 
-- [ ] **Step 4: Structural smoke test — dev mode override**
+- [ ] **Step 4: Structural smoke test — dev mode with Python preference**
 
-Create state.json with `mode: dev, scope: multi-page-static, stack: nextjs+tailwind`. Dispatch frontend-expert. Verify it generates Next.js project (not Astro), confirming the agent reads state.json.stack.
+State.json: `mode: dev, scope: full-app, preferences: { backendLang: 'python', ... }`. Dispatch backend-engineer. Verify:
+- The agent honors `backendLang: python` and picks a Python framework
+- `state.json.chosenStack.backend` mentions Python
+- Backend directory has Python files
 
 - [ ] **Step 5: Tag v0.4.0**
 
 ```bash
-git tag -a v0.4.0 -m "v0.4.0: multi-scope + multi-stack + dev mode
+git tag -a v0.4.0 -m "v0.4.0: multi-scope + dev mode + stack-agnostic agents
 
 - 4 site scopes: single-page, multi-page-static, interactive-static, full-app
-- 5 frontend stacks: vanilla / Astro / Astro+islands / Next.js / SvelteKit
-- 5 backend stacks for full-app: Next.js API / Node+Express / Go / Java / Python
-- 3 database options: SQLite / Postgres / MongoDB (plus none)
-- New /web-builder-dev slash command for dev mode
-- All agents stack/scope-aware (read state.json, branch internally)
-- New backend-engineer agent for full-app scope
-- Orchestrator runs frontend+backend in parallel for full-app
-- Revise skill technical category gains stack/scope/backend/db options
-- Smoke tests for new scopes + dev mode + scope-change revision
+- Sade vs dev mode (/web-builder-dev for preferences)
+- Stack-agnostic agents: frontend-expert and backend-engineer pick the
+  framework/language at runtime based on user preferences + current
+  ecosystem knowledge (Claude decides — no hardcoded stack list)
+- New backend-engineer agent for full-app
+- state.json.chosenStack records the picks for consistency across revisions
+- Revise skill: 'Tercihlerimi değiştir' option triggers re-pick
 "
 ```
 
@@ -1377,36 +1357,32 @@ git branch -d plan-4-multi-scope-and-dev-mode
 ## Done criteria for this plan
 
 - [ ] All 16 tasks complete with lint passing (`12 passed, 0 failed` — 1 plugin.json + 2 commands + 4 skills + 5 agents).
-- [ ] `/web-builder-dev` exists and triggers dev mode.
-- [ ] Intake skill asks 4-scope question (sade) + stack/backend/db questions (dev).
-- [ ] `frontend-expert` has 5 stack branches (vanilla/astro/astro+islands/nextjs/sveltekit).
-- [ ] `backend-engineer` agent exists with 5 backend branches.
-- [ ] Orchestrator runs backend in parallel with frontend for full-app.
-- [ ] Revise skill technical category lists 8 sub-options including stack/scope/backend/db.
-- [ ] Deployer + deliver use scope-aware defaults.
-- [ ] At least 3 of 4 scopes pass structural smoke (single-page vanilla, full-app Next.js+SQLite, dev-mode multi-page-static + Next.js override).
+- [ ] `/web-builder-dev` exists.
+- [ ] Intake supports all 4 scopes; dev mode adds preference questions; **no specific framework names appear in any plugin file** (intake, brief template, agents, revise — all framework-agnostic in the plugin code).
+- [ ] `frontend-expert` and `backend-engineer` are stack-agnostic — they pick framework at runtime based on scope + preferences.
+- [ ] `state.json.chosenStack` is populated by agents (not by intake) and stays consistent across revisions unless user explicitly changes preferences.
+- [ ] Orchestrator runs frontend+backend in parallel for full-app.
+- [ ] Smoke tests pass structurally (state.json field populated, build succeeds — without pinning specific stacks).
 - [ ] `git tag --list` shows `v0.4.0`.
 - [ ] No `TBD` / `TODO` strings in any active plugin file.
+- [ ] Critical guardrail: `grep -rE "Astro|Next\.js|SvelteKit|Vue|React|Express|FastAPI|Django|Spring|chi|gin|fastify" agents/ skills/ commands/` returns 0 results in plugin code (only allowed in README.md if needed for context).
 
 ## Out of scope for this plan (deferred)
 
 - SEO + accessibility agents (Plan 5)
-- Public Claude Code plugin distribution (Plan 6 — repo already exists privately)
+- Public Claude Code plugin distribution (Plan 6)
 - Custom domain automation (v1.1)
 - Multi-language site output (v1.1)
 - Test framework setup (per spec)
-- More frontend frameworks (Remix, Solid, Vue) — tractable adds in v0.5
-- More backend frameworks (Rust, .NET, Elixir) — tractable adds in v0.5
-- ORM choice between Prisma / Drizzle / raw SQL — Prisma is hardcoded for SQL stacks in v0.4.0
-- OAuth / SSO authentication (only email+password in v0.4.0)
-- Real-time features (websockets, SSE) — not in v0.4.0
+- OAuth / SSO (only email+password feasible from agent's pick)
+- Real-time features (websockets, SSE) — only if agent's picked stack supports them and brief requests
+- Pinning a specific framework via state.json (user can edit chosenStack.frontend manually if they want; orchestrator respects existing picks)
 
 ## Risks and edge cases
 
-- **Frontend-expert file size**: ~600-800 lines in v0.4.0. Acceptable for MVP. If it grows beyond 1000, consider splitting into per-stack agent files in a future plan.
-- **Backend-engineer file size**: similar, ~600-800 lines.
-- **Stack mismatch during revision**: if user revises stack (option E in technical category), all agents re-run. The pre-revision auto-commit ensures undo works.
-- **Auth scaffolding scope**: limited to email+password in v0.4.0. OAuth requires additional setup (env vars, callback URLs) that's out of scope for an MVP backend agent.
-- **Build time**: full-app scope (Next.js + Prisma) takes longer than single-page (no build). Acceptable; the `--silent` flag keeps output manageable.
-- **Java/Spring tooling**: requires Maven installed locally. If absent, backend-engineer warns and skips the build step.
-- **Go module path**: `backend/go.mod` uses a default module name (e.g., `siteName/backend`). Users with their own Go convention can edit afterward.
+- **Agent picks an obscure framework**: agents are instructed to prefer well-maintained, popular frameworks. Risk is low but possible. Mitigation: rationale field is user-visible; user can revise via "Tercihlerimi değiştir".
+- **Agent's knowledge is stale**: when Claude's training data ages, its framework picks may not reflect the latest landscape. Acceptable for this plugin's scope — better than hardcoding stale picks in plugin code.
+- **Stack inconsistency across revisions**: orchestrator instructs agents to respect existing `state.json.chosenStack` if set. Only explicit "Tercihlerimi değiştir" triggers a re-pick.
+- **Frontend and backend pick incompatible stacks**: parallel execution risks frontend and backend agents picking unrelated frameworks. Mitigation: backend-engineer reads `state.json.chosenStack.frontend` if frontend-expert finished first; if not yet set, defaults to a generic backend stack.
+- **Build failures from agent's pick**: if Claude picks a framework but generates broken code, the agent's retry policy kicks in. If it still fails after 1 retry, the orchestrator surfaces the failure and offers manual recovery.
+- **No stack restriction in plugin = no static guarantees**: a tradeoff. Users get future-proof flexibility; lose ability to "always get the same stack". The state.json.chosenStack record is the source of truth for what was actually picked.
