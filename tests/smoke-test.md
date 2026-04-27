@@ -180,6 +180,58 @@ Pass:
 - New `style-guide.md` reflects "playful" preset (saturated colors instead of minimalist neutrals).
 - `briefHash` in `state.json` updated.
 
+## Test 11: Single-page scope (sade mode)
+
+1. Run `/web-builder` in a clean dir.
+2. At the scope question, pick A (tek sayfa).
+3. Continue with default content + minimalist style.
+4. Plugin generates a project. The agent picks whatever it deems best for "tek sayfa" — could be vanilla HTML/CSS/JS, could be a tiny static site framework, depending on Claude's current view.
+5. Verify: the project builds (or runs without a build, if vanilla); `state.json.chosenStack.frontend` is populated; `state.json.chosenStack.rationale` is non-empty.
+
+Pass:
+- `state.json.chosenStack.frontend` is non-null and reasonable for single-page (the rationale should explain "why this stack for a one-pager")
+- The project either has no build step (vanilla case) or `npm run build` (or equivalent) succeeds
+- Generated files reflect content.md (site title, sections) and style-guide.md (palette in CSS)
+
+## Test 12: Full-app scope (sade mode)
+
+1. Run `/web-builder` in a clean dir.
+2. At scope question, pick D (üye girişi / sipariş / veri kaydı).
+3. Use the takim-takip example from sample-brief-full-app.md as inspiration for your answers (or any small CRUD app description).
+4. Plugin runs frontend-expert AND backend-engineer (state.json.agentRuns has both, with status=success).
+5. Both agents populate state.json.chosenStack (frontend, backend, database, rationale).
+
+Pass:
+- `state.json.chosenStack.frontend`, `chosenStack.backend`, `chosenStack.database` are all non-null
+- The build/install commands run successfully (whatever they are for the picked stacks)
+- The project has at least: a way to run the frontend (dev or preview command), a way to run the backend, a database file or migration script
+- An `/api/health` endpoint or equivalent exists
+
+## Test 13: Dev mode with backend language preference
+
+1. Run `/web-builder-dev` in a clean dir.
+2. At scope, pick D (full-app).
+3. At preference questions, set `backendLang` to `python` (option C).
+4. Plugin generates the project; backend-engineer's pick should be a Python framework (whatever it considers best for full-app + Python today).
+
+Pass:
+- `state.json.preferences.backendLang` is `python`
+- `state.json.chosenStack.backend` is a Python-based framework (rationale mentions Python)
+- The backend directory has Python project files (`pyproject.toml` or `requirements.txt`, `.py` source files)
+
+## Test 14: Revise — change preferences (re-pick stack)
+
+1. After Test 11 generation succeeds, run `/web-builder` again.
+2. Pick A (devam et / revize), then E (technical), then E (Tercihlerimi değiştir).
+3. Walk through the preference questions; change `priority` from `simple` to `feature-richness`.
+4. Plugin regenerates; the frontend-expert may pick a different stack (richer framework) and update `state.json.chosenStack.frontend`.
+
+Pass:
+- `state.json.preferences.priority` is updated to `feature-richness`
+- A `Pre-revision snapshot` commit precedes the change
+- A `Revision: technical — preferences-change` commit follows
+- `state.json.chosenStack.frontend` may differ from before; rationale updated
+
 ## Pass criteria
 
 - Both tests complete without manual intervention beyond answering questions.
