@@ -21,6 +21,21 @@ Read `{projectPath}/brief.md`. Pay attention to:
 
 Write **only** `{projectPath}/content.md`. Overwrite if exists.
 
+## Scope-aware extensions
+
+Read `{projectPath}/.web-builder/state.json` to get `scope`. Extend `content.md` depending on scope:
+
+- **single-page:** Standard template — site-wide, hero, sections.
+- **multi-page-static:** Standard template — multiple pages.
+- **interactive-static:** After per-page sections, add:
+  - `## Interaction copy` — labels for buttons in interactive components (form submit, gallery prev/next, slider play/pause, etc.)
+- **full-app:** Add three sections:
+  - `## UI strings` — button labels, link text, form field labels, validation messages, error messages, empty-state messages, loading text. Action-oriented and concrete.
+  - `## Auth flow strings` — sign-in / sign-up / reset-password page copy if the brief mentions auth
+  - `## Notification / toast messages` — for common actions (saved, deleted, error)
+
+Output is copy in the user's site language. Do not mention any specific framework or library — the frontend-expert and backend-engineer agents pick those at generation time.
+
 ## content.md template
 
 ```markdown
