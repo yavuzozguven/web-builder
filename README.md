@@ -9,14 +9,20 @@ The plugin is **stack-agnostic**: it doesn't ship with a hardcoded list of frame
 ## Install
 
 ```bash
-claude code plugin install yavuzozguven/web-builder
+claude plugin install github:yavuzozguven/web-builder
 ```
 
 (Or, if you've cloned the repo locally:)
 
 ```bash
 cd path/to/web-builder
-claude code plugin install .
+claude plugin install .
+```
+
+Verify it loaded:
+
+```bash
+claude plugin list
 ```
 
 ## Use

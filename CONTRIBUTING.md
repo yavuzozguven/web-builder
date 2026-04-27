@@ -30,7 +30,7 @@ tests/lint.sh
 To install the plugin from your local clone (for testing changes):
 
 ```bash
-claude code plugin install .
+claude plugin install .
 ```
 
 Re-install after each change.

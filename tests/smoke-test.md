@@ -8,8 +8,9 @@ Run this from a terminal with Claude Code installed and the web-builder plugin l
 
    ```bash
    # From the web-builder repo root:
-   claude code plugin install .
-   # or whatever the local install command is for the current Claude Code version
+   claude plugin install .
+   # Or from a public repo URL:
+   # claude plugin install github:yavuzozguven/web-builder
    ```
 
 2. Create a clean working directory and cd into it:
