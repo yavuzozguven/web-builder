@@ -56,11 +56,11 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
    
       | Change category | Agents to re-run (in order) |
       |---|---|
-      | `style` | `ui-ux-designer`, `frontend-expert` |
-      | `content` | `content-writer`, `frontend-expert` (and `backend-engineer` if content includes UI strings used by API responses) |
-      | `structure` | `ui-ux-designer` (if layout shifts), `content-writer`, `frontend-expert` |
-      | `behavior` | `frontend-expert` (and `backend-engineer` if change involves auth or API endpoints) |
-      | `technical` | depends on sub-detail: preference change → all agents re-pick + regenerate; deploy target change → deliver skill's deploy flow |
+      | `style` | `ui-ux-designer`, `frontend-expert`, `accessibility-reviewer` (palette change may affect contrast) |
+      | `content` | `content-writer`, `seo-expert` (titles/descriptions derived from content), `frontend-expert`, `accessibility-reviewer` (alt text changes) |
+      | `structure` | `ui-ux-designer` (if layout shifts), `content-writer`, `seo-expert` (sitemap changes), `frontend-expert`, `accessibility-reviewer` |
+      | `behavior` | `frontend-expert` (and `backend-engineer` if change involves auth or API endpoints), `accessibility-reviewer` (interactive elements need a11y review) |
+      | `technical` | depends on sub-detail: preference change → all agents re-pick + regenerate; deploy target change → deliver skill's deploy flow; SEO meta change → `seo-expert` + `frontend-expert`; A11y check → `accessibility-reviewer` only |
       | `undo` | (no agents — see step 1d below) |
       | `cancel` | exit cleanly |
    
@@ -94,7 +94,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
    - Intake returns the absolute path of the project subdirectory it created.
    - If intake exits early (user declined the scope), exit too.
 
-3. From this point on, **all file operations happen inside the project subdirectory.** `cd` into it before invoking agents. Run the agent execution graph against the project directory. The graph is scope-aware:
+3. From this point on, **all file operations happen inside the project subdirectory.** `cd` into it before invoking agents. Run the agent execution graph against the project directory:
 
    **Sequential phase 1 (always):**
 
@@ -106,23 +106,35 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 
    Wait for completion. Append to `state.json.agentRuns`. Standard retry policy.
 
-   **Sequential phase 2 (after designer completes):**
+   **Parallel phase 2 (after designer completes):**
 
    **Step B — `content-writer` agent**
 
-   Same pattern, `subagent_type: "content-writer"`.
+   Use Agent tool with `subagent_type: "content-writer"`. Same prompt pattern.
 
-   **Parallel phase 3 (after content-writer completes):**
+   **Step C — `seo-expert` agent**
 
-   **Step C — `frontend-expert` agent**
+   In parallel with B: use Agent tool with `subagent_type: "seo-expert"`. Same prompt pattern. Writes `seo.md`.
 
-   Use Agent tool with `subagent_type: "frontend-expert"`. The agent reads scope + preferences and picks a frontend stack at runtime. After it runs, `state.json.chosenStack.frontend` is populated.
+   Wait for both B and C to complete before proceeding.
 
-   **Step D — `backend-engineer` agent (only if scope = full-app)**
+   **Parallel phase 3 (after content-writer + seo-expert complete):**
 
-   In parallel with Step C: use Agent tool with `subagent_type: "backend-engineer"`. The agent reads scope + preferences (and may read `state.json.chosenStack.frontend` after frontend-expert completes — minor sequencing note: run backend-engineer SLIGHTLY AFTER frontend-expert starts to give it a chance to read the frontend pick, OR run them truly in parallel and let the backend agent default if frontend pick isn't yet known). Skip this step entirely if scope is not `full-app`.
+   **Step D — `frontend-expert` agent**
 
-   Wait for both C and D to complete before proceeding.
+   Use Agent tool with `subagent_type: "frontend-expert"`. The agent reads scope + preferences and picks a frontend stack at runtime. After it runs, `state.json.chosenStack.frontend` is populated. The agent also reads `seo.md` and injects meta tags into the generated output.
+
+   **Step E — `backend-engineer` agent (only if scope = full-app)**
+
+   In parallel with Step D: use Agent tool with `subagent_type: "backend-engineer"`. Reads `seo.md` and generates a sitemap route + robots.txt for the full-app deployment. Skip entirely if scope is not `full-app`.
+
+   Wait for both D and E to complete before proceeding.
+
+   **Sequential phase 4 (final pass after all generation is done):**
+
+   **Step F — `accessibility-reviewer` agent**
+
+   Use Agent tool with `subagent_type: "accessibility-reviewer"`. Reads `state.json.chosenStack.frontend` (must be non-null), scans the generated code, applies inline fixes, writes `a11y-report.md`. In sade mode the fixes are silent; in dev mode the report is surfaced in the deliver step.
 
 4. Update `.web-builder/state.json` (relative to the project directory you `cd`'d into in step 3):
    - Set `lastModified` to current ISO timestamp.
