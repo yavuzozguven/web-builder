@@ -13,7 +13,7 @@ You collect what the user wants to build through a short Q&A and write the resul
 - **Dev mode (invoked from `/web-builder-dev`):** ask scope, then ask preferences (interactivity / performance / preferred language) — the plugin uses these to inform agent choices but **never names specific frameworks** in the dialog. The agent picks at runtime.
 - Image strategy: contextual Unsplash placeholders for both modes.
 - The orchestrator passes you a `mode` parameter (`simple` or `dev`); branch on it.
-- **Do not enumerate frameworks anywhere.** No "Astro vs Next.js" choice. The agents decide.
+- **Do not enumerate specific frameworks anywhere in user-facing dialog.** Ask user-facing intent ("simple vs feature-rich", "Python vs Node vs compiled language"); the agents decide on concrete frameworks at generation time.
 
 ## Q&A flow
 
@@ -83,7 +83,7 @@ Capture as `preferences.interactivity` (one of `low`, `medium`, `high`, `claude-
 
 Capture as `preferences.backendLang` (one of `same-as-frontend`, `node-separate`, `python`, `compiled`, `enterprise-jvm`, `claude-decides`).
 
-The plugin does NOT enumerate specific frameworks (Express vs Fastify vs Hono; Django vs FastAPI vs Flask). The agent picks within whichever bucket the user chose.
+The plugin does NOT enumerate specific frameworks. The agent picks within whichever language/ecosystem bucket the user chose.
 
 #### Q2-dev-prefs-4: Database (only ask for `full-app`)
 

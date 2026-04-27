@@ -165,9 +165,17 @@ This target requires a GitHub repo for the project (separate from the plugin's o
    - Create a private repo: `gh repo create {siteName} --private --source=. --push 2>&1`
    - Read the URL from the output.
 
-3. Enable Pages with GitHub Actions deploy workflow (Astro static):
+3. Enable Pages with a GitHub Actions deploy workflow appropriate to the chosen stack:
 
-   - Write `.github/workflows/deploy.yml` in the project directory with the standard Astro-to-Pages workflow (use the official Astro docs template — single workflow that builds and uploads to Pages).
+   - Read `state.json.chosenStack.frontend` to determine the stack the project was generated in.
+   - Write `.github/workflows/deploy.yml` with a workflow that:
+     - Checks out the code
+     - Sets up the right toolchain (Node + the package manager the project uses, or Python, or Go, etc. — match what the chosen stack needs)
+     - Installs dependencies (e.g., `pnpm install` / `npm ci` / `pip install -r requirements.txt` / `go mod download`)
+     - Runs the project's build command (whatever the chosen stack uses to produce a `dist/` or `build/` or `_site/` directory)
+     - Uses `actions/upload-pages-artifact` on the build output directory
+     - Uses `actions/deploy-pages` to publish
+   - If `state.json.chosenStack.frontend` is `null` or unknown, generate a generic static-files workflow that simply uploads the existing `dist/` (or `public/` if that's what's there) — no build step.
    - Commit the workflow file: `git add .github && git commit -q -m "ci: add Pages deploy workflow"`
    - Push: `git push -q`
    - Enable Pages via API: `gh api -X POST repos/{owner}/{repo}/pages -f build_type=workflow 2>&1`
