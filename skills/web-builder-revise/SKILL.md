@@ -140,6 +140,8 @@ description: <user's verbatim answer>
 > B) Site adı / URL slug değiştir
 > C) SEO meta (title, description) değiştir
 > D) Performance / cache ayarları
+> E) Tercihlerimi değiştir (interaktivite, performans, dil tercihi vs. — agent yeniden stack seçecek)
+> F) Scope değiştir (örn. tek sayfa → çok sayfalı — büyük değişiklik, site yeniden üretilir)
 
 For category E, note: SEO meta and performance are partially Plan 5 (SEO/a11y agents). For now, surface a friendly note: "SEO ve performance için tam destek bir sonraki sürümde geliyor. Şimdilik basit değişiklikleri uygulayabilirim."
 
@@ -150,6 +152,25 @@ category: technical
 detail: <user's choice>
 description: <user's verbatim answer>
 ```
+
+For E (preferences-change): walk the user through dev-mode preference questions again (priority, interactivity, backendLang, dbStyle, typescript). Capture the new values. Return:
+
+```
+category: technical
+detail: preferences-change
+description: <one-line summary of what changed>
+new-preferences: <object with the new preference values>
+```
+
+For F (scope-change): confirm the new scope with the user (warn it's a big change), capture new scope value. Return:
+
+```
+category: technical
+detail: scope-change
+new-scope: <single-page | multi-page-static | interactive-static | full-app>
+```
+
+The orchestrator will re-run all agents for both E and F (they may pick different stacks).
 
 ## Confirmation before returning
 
