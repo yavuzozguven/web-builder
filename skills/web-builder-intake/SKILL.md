@@ -87,6 +87,7 @@ After all 5 questions are answered:
 3. Create `{projectPath}/.web-builder/` directory.
 4. Write `{projectPath}/brief.md` using the template below.
 5. Write `{projectPath}/.web-builder/state.json` with initial state (see schema in design spec §6.2). Set `mode: "simple"`, `scope: "multi-page-static"`, `stack: "astro+tailwind"`, `language` to the detected language, `siteLanguage` to the same value (MVP: assumes site is in same language the user is writing in), `createdAt` and `lastModified` to ISO timestamps, empty `agentRuns: []`.
+   - Note: subsequent steps (orchestrator git init, deployer) will add `gitInitialized`, `initialCommitSha`, and `deployment` fields. Intake itself does not need to set these — they default to absent.
 
 ## brief.md template
 
