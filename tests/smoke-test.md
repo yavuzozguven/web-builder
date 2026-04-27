@@ -113,6 +113,73 @@ To test the auth-needed flow without actually deploying:
 
 Pass: no silent failures; auth handoff is clean and respects user agency.
 
+## Test 7: Revision — style change
+
+After Test 1 generation succeeds:
+
+1. Without leaving the parent folder, run `/web-builder` again from the same parent.
+2. Plugin should detect the existing `.web-builder/state.json` (manual-edit check passes since brief.md unchanged).
+3. Plugin asks: "Geçen sefer kadikoy-kahve sitesini yapmıştık. Devam edelim mi yoksa yeni bir site mi?"
+4. Pick **A) Devam et (revize)**.
+5. Plugin invokes revise skill, asks "Neyi değiştirmek istersin?" — pick **A) Görsel stil**.
+6. Sub-question: pick **A) Renk paletini değiştir**.
+7. Tell the plugin: "Daha sıcak olsun, kahverengi ağırlıklı."
+8. Plugin confirms summary, you say "Evet, uygula".
+9. Plugin runs `ui-ux-designer` + `frontend-expert` (skipping `content-writer`).
+10. Plugin auto-commits before agents (look for "Pre-revision snapshot" commit) and after (look for "Revision: style — ..." commit).
+11. Plugin invokes deliver skill in post-revision mode.
+
+Pass:
+- `git log --oneline | head -5` shows pre-revision and post-revision commits with correct messages.
+- `state.json.agentRuns` has new entries for `ui-ux-designer` and `frontend-expert` (NOT `content-writer`).
+- `style-guide.md` palette section now reflects warmer/brown tones.
+- `dist/` was rebuilt by `frontend-expert`.
+
+## Test 8: Revision — content change (single page)
+
+Following Test 7's project state:
+
+1. Run `/web-builder` again from the parent.
+2. Pick **A) Devam et (revize)**, then **B) İçerik**, then **A) Belirli bir sayfanın metnini değiştir**.
+3. Plugin asks which page; say "Hakkımızda".
+4. Plugin asks what to change; say "Daha samimi bir tone, kafenin kuruluş hikayesi de eklensin."
+5. Confirm and continue.
+6. Plugin runs `content-writer` + `frontend-expert` (NOT `ui-ux-designer`).
+
+Pass:
+- `state.json.agentRuns` has new `content-writer` + `frontend-expert` entries (and no new `ui-ux-designer` entry).
+- `content.md` "Page: Hakkımızda" section has updated text reflecting the new tone.
+- Dist rebuilt.
+
+## Test 9: Undo
+
+Following Test 8's project state:
+
+1. Run `/web-builder` again.
+2. Pick **A) Devam et (revize)**, then **G) Son değişikliği geri al**.
+3. Plugin runs `git revert --no-edit <sha>` on Test 8's revision commit.
+4. Plugin tells the user "Son revizyon geri alındı."
+
+Pass:
+- `git log --oneline` shows a new "Revert ..." commit at HEAD.
+- `content.md` "Page: Hakkımızda" section reverted to its Test 1 (or Test 7's pre-content-change) state.
+- `state.json.agentRuns` has a new entry with `agent: "undo"`.
+- Re-running undo is allowed but only reverts the most recent revision commit each time (each call is a separate revert).
+
+## Test 10: Manual brief.md edit detection (optional)
+
+1. After Test 1, manually edit `brief.md` — change "minimalist" to "playful" in the Stil Tercihi section.
+2. Save the file.
+3. Run `/web-builder` again from the parent.
+4. Plugin detects the briefHash mismatch and asks "Brief dosyasını elle değiştirmişsin görüyorum. Etkilenen kısımları yeniden üreteyim mi?"
+5. Pick **A) Evet**.
+6. Plugin runs all 3 agents (designer, content, frontend) since the brief is the source of truth.
+
+Pass:
+- All 3 agents re-ran (verified via `state.json.agentRuns`).
+- New `style-guide.md` reflects "playful" preset (saturated colors instead of minimalist neutrals).
+- `briefHash` in `state.json` updated.
+
 ## Pass criteria
 
 - Both tests complete without manual intervention beyond answering questions.
