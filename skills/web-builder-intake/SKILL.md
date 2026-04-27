@@ -7,11 +7,13 @@ description: Use to collect the user's requirements for a new website project vi
 
 You collect what the user wants to build through a short Q&A and write the result to `brief.md`.
 
-## Constraints (MVP)
+## Constraints
 
-- Hardcoded scope: multi-page static site (do **not** ask about scope; assume this).
-- Hardcoded stack: Astro + Tailwind (do **not** mention this to the user).
-- Hardcoded image strategy: contextual Unsplash placeholders.
+- **Sade mode (this skill is invoked from `/web-builder`):** ask scope (Q2 below); do NOT ask about frameworks or languages; the worker agents will pick automatically.
+- **Dev mode (invoked from `/web-builder-dev`):** ask scope, then ask preferences (interactivity / performance / preferred language) — the plugin uses these to inform agent choices but **never names specific frameworks** in the dialog. The agent picks at runtime.
+- Image strategy: contextual Unsplash placeholders for both modes.
+- The orchestrator passes you a `mode` parameter (`simple` or `dev`); branch on it.
+- **Do not enumerate frameworks anywhere.** No "Astro vs Next.js" choice. The agents decide.
 
 ## Q&A flow
 
@@ -25,21 +27,87 @@ Ask one question at a time. Wait for the user's answer before asking the next.
 
 Capture the answer as `goal`.
 
-### Q2: Confirm scope interpretation
+### Q2: Site scope
 
-Summarize what you understood and confirm the user wants a multi-page static site (a few simple pages, no logins, no shopping cart). Example phrasing:
+> Ne tür bir site yapacağız?
+>
+> A) Tek sayfa (kısa tanıtım, one-pager)
+> B) Çok sayfalı tanıtım (ana sayfa + hakkımızda + iletişim falan, hafif ya da hiç etkileşim yok)
+> C) Çok sayfalı + bir-iki etkileşim (form, galeri, küçük JS özellikleri)
+> D) Üye girişi / sipariş / veri kaydı olan tam uygulama
 
-> Anladım — çok sayfalı bir tanıtım sitesi gibi duruyor (ana sayfa + hakkımızda + iletişim falan). Sence de öyle mi?
+Map the answer:
+- A → `single-page`
+- B → `multi-page-static`
+- C → `interactive-static`
+- D → `full-app`
+
+Capture as `scope`.
+
+In **dev mode only**, after scope, also ask the preference questions below. In **sade mode**, skip them entirely — the agents will pick reasonable defaults based on scope alone.
+
+### Q2-dev-prefs: Dev mode preferences (only if mode == dev)
+
+#### Q2-dev-prefs-1: Performance vs simplicity
+
+> Bu site için ne daha önemli?
+>
+> A) Mümkün olduğunca basit ve hızlı kurulum (build step bile olmasın istersen)
+> B) Modern, hızlı (küçük bundle, fast page loads)
+> C) İçerik/feature ağırlıklı (build complexity sorun değil, ama maintainable olsun)
+> D) Fark etmez, sen seç
+
+Capture as `preferences.priority` (one of `simple`, `performance`, `feature-richness`, `claude-decides`).
+
+#### Q2-dev-prefs-2: Interactivity (only ask for `interactive-static` or `full-app`)
+
+> Sitede ne kadar JS-tabanlı etkileşim olacak?
+>
+> A) Az (sadece bir-iki yerde küçük etkileşim)
+> B) Orta (form'lar, küçük UI bileşenleri, biraz dinamik içerik)
+> C) Çok (gerçek anlamda app — sürekli state, complex flows)
+> D) Fark etmez, sen seç
+
+Capture as `preferences.interactivity` (one of `low`, `medium`, `high`, `claude-decides`).
+
+#### Q2-dev-prefs-3: Backend language (only ask for `full-app`)
+
+> Backend tarafı için bir dil/ekosistem tercihin var mı?
+>
+> A) Frontend'le aynı paket olsun (tek node projesi)
+> B) Ayrı bir Node servisi
+> C) Python kullanmak isterim
+> D) Go / Rust / başka bir compiled language
+> E) Java / .NET ekosistemi
+> F) Fark etmez, sen seç
+
+Capture as `preferences.backendLang` (one of `same-as-frontend`, `node-separate`, `python`, `compiled`, `enterprise-jvm`, `claude-decides`).
+
+The plugin does NOT enumerate specific frameworks (Express vs Fastify vs Hono; Django vs FastAPI vs Flask). The agent picks within whichever bucket the user chose.
+
+#### Q2-dev-prefs-4: Database (only ask for `full-app`)
+
+> Database için tercihin?
+>
+> A) En basit (file-based, sıfır ayar — sen seçersin)
+> B) Klasik SQL (Postgres ya da benzeri — sen seçersin)
+> C) Document DB (MongoDB ya da benzeri — sen seçersin)
+> D) Yok / kendim halledeceğim
+> E) Fark etmez, sen seç
+
+Capture as `preferences.dbStyle` (one of `simple`, `sql`, `document`, `none`, `claude-decides`).
+
+#### Q2-dev-prefs-5: TypeScript
+
+> TypeScript kullanalım mı?
 >
 > A) Evet
-> B) Daha basit, tek sayfa yeter
-> C) Daha karmaşık (üye girişi / sipariş gibi şeyler de olsun)
+> B) Hayır
+> C) Sen seç (scope'a göre uygun olanı)
 
-If the user picks **B** or **C**, respond:
+Capture as `preferences.typescript` (one of `true`, `false`, `claude-decides`).
 
-> Şu an MVP sürümünde sadece çok sayfalı tanıtım sitesi yapabiliyorum. Tek sayfalı veya daha karmaşık siteler yakında. İstersen yine çok sayfalı olarak devam edelim mi?
-
-If they decline, exit cleanly. Otherwise proceed.
+The whole point is: dev mode collects user-facing intent ("I want fast", "I prefer Python") — never specific tool names. The agent's job is to translate intent into the most appropriate tool **right now**.
 
 ### Q3: Project name
 
@@ -86,7 +154,21 @@ After all 5 questions are answered:
 2. Create the subdirectory: `mkdir -p {projectPath}`.
 3. Create `{projectPath}/.web-builder/` directory.
 4. Write `{projectPath}/brief.md` using the template below.
-5. Write `{projectPath}/.web-builder/state.json` with initial state (see schema in design spec §6.2). Set `mode: "simple"`, `scope: "multi-page-static"`, `stack: "astro+tailwind"`, `language` to the detected language, `siteLanguage` to the same value (MVP: assumes site is in same language the user is writing in), `createdAt` and `lastModified` to ISO timestamps, empty `agentRuns: []`.
+5. Write `{projectPath}/.web-builder/state.json` with initial state. Set the following fields:
+   - `mode: "simple"` or `"dev"` (as passed by orchestrator)
+   - `scope: <captured value from Q2>` (one of `single-page`, `multi-page-static`, `interactive-static`, `full-app`)
+   - `siteName: <captured>`
+   - `siteLanguage: <detected from user's language>`
+   - `createdAt: <ISO timestamp>`
+   - `lastModified: <ISO timestamp>`
+   - `agentRuns: []` (empty array)
+   - `preferences: <only in dev mode; sade mode sets to null or empty {}>`:
+     - `priority: <captured from Q2-dev-prefs-1 | null>`
+     - `interactivity: <captured from Q2-dev-prefs-2 | null>`
+     - `backendLang: <captured from Q2-dev-prefs-3 | null>`
+     - `dbStyle: <captured from Q2-dev-prefs-4 | null>`
+     - `typescript: <captured from Q2-dev-prefs-5 | null>`
+   - `chosenStack: { frontend: null, backend: null, database: null, rationale: null }` (agents populate these on first run)
    - Note: subsequent steps (orchestrator git init, deployer) will add `gitInitialized`, `initialCommitSha`, and `deployment` fields. Intake itself does not need to set these — they default to absent.
 
 ## brief.md template
