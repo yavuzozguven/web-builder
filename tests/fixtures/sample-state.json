@@ -1,0 +1,19 @@
+{
+  "version": "1",
+  "mode": "simple",
+  "language": "tr",
+  "scope": "multi-page-static",
+  "stack": "astro+tailwind",
+  "siteName": "test-cafe",
+  "siteLanguage": "tr",
+  "createdAt": "2026-04-26T12:00:00Z",
+  "lastModified": "2026-04-26T12:00:00Z",
+  "briefHash": "sha256:placeholder",
+  "agentRuns": [
+    {"agent": "ui-ux-designer", "at": "2026-04-26T12:01:00Z", "wrote": ["style-guide.md"], "status": "success"},
+    {"agent": "content-writer", "at": "2026-04-26T12:02:00Z", "wrote": ["content.md"], "status": "success"},
+    {"agent": "frontend-expert", "at": "2026-04-26T12:03:00Z", "wrote": ["src/", "package.json", "..."], "status": "success"}
+  ],
+  "gitInitialized": true,
+  "initialCommitSha": "abc123def456"
+}
