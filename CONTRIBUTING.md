@@ -63,4 +63,4 @@ web-builder/
 
 ## Reporting security issues
 
-Please email `yavuz.ozguven@useinsider.com` rather than opening a public issue.
+Please email `yavuzozguven@hotmail.com` rather than opening a public issue.
