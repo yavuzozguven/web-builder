@@ -49,7 +49,13 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
    - Set `lastModified` to current ISO timestamp.
    - Set `briefHash` to SHA-256 of the current `brief.md` contents (compute via `Bash`: `shasum -a 256 brief.md | cut -d' ' -f1`).
 
-5. Invoke the `web-builder-deliver` skill via the `Skill` tool, passing the project path.
+5. Initialize git in the project directory and create the initial commit (sade mode: silent; dev mode behavior is Plan 4):
+   - If `.git/` does not exist in the project directory: run `git init -q`, `git add .`, `git commit -q -m "Initial generation by web-builder"`.
+   - If `.git/` already exists (user pre-initialized): skip init, but still run `git add .` and `git commit -q -m "Initial generation by web-builder"`.
+   - Update `.web-builder/state.json` to add `"gitInitialized": true` and capture the initial commit SHA in a new `"initialCommitSha"` field.
+   - On any failure: log to `agentRuns` with agent name `git-init` and continue — git is not strictly required for the generated site to be useful, but the user should be informed once.
+
+6. Invoke the `web-builder-deliver` skill via the `Skill` tool, passing the project path.
 
 ## Error handling
 
