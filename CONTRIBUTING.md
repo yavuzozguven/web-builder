@@ -27,13 +27,15 @@ cd web-builder
 tests/lint.sh
 ```
 
-To install the plugin from your local clone (for testing changes):
+To load the plugin from your local clone for testing changes:
 
 ```bash
-claude plugin install .
+claude --plugin-dir .
 ```
 
-Re-install after each change.
+This starts a Claude session with the plugin loaded directly from the directory — no marketplace dance, no install. Re-run after each change.
+
+(For end-user install via marketplace, see `README.md`.)
 
 ## Project structure
 

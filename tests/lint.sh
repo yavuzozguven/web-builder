@@ -7,9 +7,17 @@ cd "$(dirname "$0")/.."
 ok=0
 fail=0
 
-# --- plugin.json ---
-echo -n "plugin.json valid JSON: "
-if python3 -c "import json,sys; d=json.load(open('plugin.json')); assert 'name' in d and 'version' in d and 'description' in d" 2>/dev/null; then
+# --- plugin.json (canonical location: .claude-plugin/plugin.json) ---
+echo -n ".claude-plugin/plugin.json valid JSON: "
+if python3 -c "import json,sys; d=json.load(open('.claude-plugin/plugin.json')); assert 'name' in d and 'version' in d and 'description' in d" 2>/dev/null; then
+  echo "OK"; ok=$((ok+1))
+else
+  echo "FAIL"; fail=$((fail+1))
+fi
+
+# --- marketplace.json (single-plugin marketplace at .claude-plugin/marketplace.json) ---
+echo -n ".claude-plugin/marketplace.json valid JSON: "
+if python3 -c "import json,sys; d=json.load(open('.claude-plugin/marketplace.json')); assert 'name' in d and 'owner' in d and 'plugins' in d and isinstance(d['plugins'], list) and len(d['plugins']) >= 1" 2>/dev/null; then
   echo "OK"; ok=$((ok+1))
 else
   echo "FAIL"; fail=$((fail+1))

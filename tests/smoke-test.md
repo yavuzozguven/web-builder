@@ -4,13 +4,17 @@ Run this from a terminal with Claude Code installed and the web-builder plugin l
 
 ## Setup
 
-1. Install the plugin locally (until v1.0 ships publicly):
+1. Start a Claude session with the plugin loaded:
 
    ```bash
-   # From the web-builder repo root:
-   claude plugin install .
-   # Or from a public repo URL:
-   # claude plugin install github:yavuzozguven/web-builder
+   # From any directory, point at the repo:
+   claude --plugin-dir /path/to/web-builder
+   ```
+
+   Or, once published:
+   ```
+   /plugin marketplace add github:yavuzozguven/web-builder
+   /plugin install web-builder@web-builder
    ```
 
 2. Create a clean working directory and cd into it:

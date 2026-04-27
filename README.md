@@ -8,22 +8,33 @@ The plugin is **stack-agnostic**: it doesn't ship with a hardcoded list of frame
 
 ## Install
 
-```bash
-claude plugin install github:yavuzozguven/web-builder
+The plugin is distributed as a single-plugin Claude Code marketplace. Add the marketplace and install in two steps (run inside a `claude` session):
+
+```
+/plugin marketplace add github:yavuzozguven/web-builder
+/plugin install web-builder@web-builder
 ```
 
-(Or, if you've cloned the repo locally:)
-
-```bash
-cd path/to/web-builder
-claude plugin install .
-```
+(The `@web-builder` after the plugin name is the marketplace name. They happen to match because this repo is its own single-plugin marketplace.)
 
 Verify it loaded:
 
-```bash
-claude plugin list
 ```
+/plugin
+```
+
+You should see `web-builder` listed and the slash commands `/web-builder:start` and `/web-builder:dev` available.
+
+### Local development install (clone + try it)
+
+If you've cloned the repo locally and want to test changes without going through the marketplace:
+
+```bash
+cd path/to/web-builder
+claude --plugin-dir .
+```
+
+This loads the plugin directly into the current `claude` session. Re-run after each change.
 
 ## Use
 
