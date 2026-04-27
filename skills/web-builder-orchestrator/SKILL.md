@@ -57,10 +57,10 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
       | Change category | Agents to re-run (in order) |
       |---|---|
       | `style` | `ui-ux-designer`, `frontend-expert` |
-      | `content` | `content-writer`, `frontend-expert` |
+      | `content` | `content-writer`, `frontend-expert` (and `backend-engineer` if content includes UI strings used by API responses) |
       | `structure` | `ui-ux-designer` (if layout shifts), `content-writer`, `frontend-expert` |
-      | `behavior` | `frontend-expert` |
-      | `technical` | `frontend-expert` (for performance/cache); for deploy changes, route to deliver skill's deploy flow instead |
+      | `behavior` | `frontend-expert` (and `backend-engineer` if change involves auth or API endpoints) |
+      | `technical` | depends on sub-detail: preference change → all agents re-pick + regenerate; deploy target change → deliver skill's deploy flow |
       | `undo` | (no agents — see step 1d below) |
       | `cancel` | exit cleanly |
    
@@ -94,28 +94,35 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
    - Intake returns the absolute path of the project subdirectory it created.
    - If intake exits early (user declined the scope), exit too.
 
-3. From this point on, **all file operations happen inside the project subdirectory.** `cd` into it before invoking agents. Run the agent execution graph against the project directory:
+3. From this point on, **all file operations happen inside the project subdirectory.** `cd` into it before invoking agents. Run the agent execution graph against the project directory. The graph is scope-aware:
+
+   **Sequential phase 1 (always):**
 
    **Step A — `ui-ux-designer` agent**
 
-   Use the `Agent` tool with `subagent_type: "ui-ux-designer"`. Pass a prompt that includes the absolute project path:
+   Use the `Agent` tool with `subagent_type: "ui-ux-designer"`. Pass:
 
    > Project path: `{projectPath}`. Read brief.md and write style-guide.md per your instructions.
 
-   Wait for completion. Append to `state.json` `agentRuns`:
-   ```json
-   {"agent": "ui-ux-designer", "at": "<ISO>", "wrote": ["style-guide.md"], "status": "<success|failed>"}
-   ```
+   Wait for completion. Append to `state.json.agentRuns`. Standard retry policy.
 
-   On failure: retry once with the same prompt. If it fails again, report to the user, append the failure to `agentRuns`, and ask whether to abort or try once more. Do not silently continue.
+   **Sequential phase 2 (after designer completes):**
 
    **Step B — `content-writer` agent**
 
-   Same pattern, `subagent_type: "content-writer"`, writes `content.md`. Same retry policy.
+   Same pattern, `subagent_type: "content-writer"`.
+
+   **Parallel phase 3 (after content-writer completes):**
 
    **Step C — `frontend-expert` agent**
 
-   Same pattern, `subagent_type: "frontend-expert"`, writes the Astro project files and runs the build. Same retry policy.
+   Use Agent tool with `subagent_type: "frontend-expert"`. The agent reads scope + preferences and picks a frontend stack at runtime. After it runs, `state.json.chosenStack.frontend` is populated.
+
+   **Step D — `backend-engineer` agent (only if scope = full-app)**
+
+   In parallel with Step C: use Agent tool with `subagent_type: "backend-engineer"`. The agent reads scope + preferences (and may read `state.json.chosenStack.frontend` after frontend-expert completes — minor sequencing note: run backend-engineer SLIGHTLY AFTER frontend-expert starts to give it a chance to read the frontend pick, OR run them truly in parallel and let the backend agent default if frontend pick isn't yet known). Skip this step entirely if scope is not `full-app`.
+
+   Wait for both C and D to complete before proceeding.
 
 4. Update `.web-builder/state.json` (relative to the project directory you `cd`'d into in step 3):
    - Set `lastModified` to current ISO timestamp.
