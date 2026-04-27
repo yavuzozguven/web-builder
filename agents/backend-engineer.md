@@ -14,6 +14,7 @@ Read in this order:
 1. `{projectPath}/.web-builder/state.json` — `scope` (must be `full-app`), `preferences`, `chosenStack` (you may run after frontend-expert; respect what it picked)
 2. `{projectPath}/brief.md` — feature list, entities, auth needs
 3. `{projectPath}/content.md` "Auth flow strings" / "UI strings" sections if present
+4. `{projectPath}/seo.md` (if present) — sitemap structure and robots rules; backend generates the sitemap route or static file
 
 ## Pre-flight
 
@@ -83,7 +84,10 @@ Generate the project per the stack you picked. Common deliverables:
    - For document DBs: schema/model files
    - For `none`: in-memory data structures with a warning at startup
 5. **Auth middleware** (if auth is needed): hash passwords, JWT or session-based auth, middleware to protect routes
-6. **README section** explaining how to run the backend (env vars, dev command, migration command)
+6. **Sitemap route or static file**: read `seo.md`'s Sitemap section, generate either `/sitemap.xml` route (if backend serves it dynamically) or `public/sitemap.xml` (if static)
+7. **robots.txt**: read `seo.md`'s robots section, write to `public/robots.txt` (or framework equivalent)
+8. **For auth-protected pages**, ensure they include `noindex` meta tag (frontend-expert handles the meta; backend-engineer may also set the appropriate cache headers like `X-Robots-Tag: noindex` for API responses)
+9. **README section** explaining how to run the backend (env vars, dev command, migration command)
 
 If the frontend stack already has its own backend conventions (e.g., the frontend is a meta-framework with built-in API routes), generate the backend files in that framework's expected location instead of a separate `backend/` directory. Otherwise, use a `backend/` subdirectory at the project root.
 
