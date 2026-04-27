@@ -4,15 +4,16 @@ A Claude Code plugin that builds you a website end-to-end through guided Q&A. Yo
 
 ## Status
 
-**v0.2.0.** Multi-page static sites (Astro + Tailwind), sade mode, with preview and deploy.
+**v0.3.0.** Multi-page static sites (Astro + Tailwind), sade mode, full preview/deploy/revision loop.
 
 - ✅ Generate multi-page static site from Q&A
 - ✅ Preview locally (`npm run dev`) with one click
 - ✅ Deploy to Cloudflare Pages, Vercel, Netlify, or GitHub Pages
 - ✅ Local-only output for self-hosting
 - ✅ Auto git initialization in sade mode
+- ✅ Revise existing projects: structured Q&A, impact-aware re-runs, undo, manual brief.md edit detection
 
-Not yet supported (coming in later versions): tek-sayfa sites, full web apps, dev mode (technical stack overrides), revision flow, SEO/accessibility agents.
+Not yet supported (coming in later versions): tek-sayfa sites, full web apps, dev mode (technical stack overrides), SEO/accessibility agents.
 
 ## Install (local, pre-v1.0)
 

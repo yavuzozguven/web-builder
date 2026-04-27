@@ -1,6 +1,6 @@
 {
   "name": "web-builder",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Build a website end-to-end through guided Q&A. Asks what you want, picks the stack, generates the code.",
   "author": "Yavuz Ozguven <yavuz.ozguven@useinsider.com>",
   "license": "MIT"
