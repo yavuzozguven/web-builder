@@ -19,7 +19,7 @@ You wrap up the generation by summarizing what's on disk and telling the user ho
    - Confirmation that the site is ready
    - The absolute path of the project directory
    - A 1-sentence explanation of what each top-level markdown file is (`brief.md`, `style-guide.md`, `content.md`) and that the user can edit them by hand
-   - A note that revision flow is coming in a later version of the plugin
+   - A note that the user can re-run `/web-builder` later to revise this site (style, content, structure, behavior, deploy target, or undo the last change)
 
 4. **Preview prompt.** Ask the user (in their language):
 

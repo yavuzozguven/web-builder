@@ -57,7 +57,7 @@ Answer 5 short questions. The plugin creates a subfolder with a working Astro si
 └── public/
 ```
 
-You can edit `brief.md`, `style-guide.md`, or `content.md` by hand — the plugin will honor those edits in future versions when the revision flow ships.
+You can edit `brief.md` by hand — re-run `/web-builder` from inside the project folder and the plugin will detect the change (briefHash diff) and ask whether to regenerate the affected parts. `style-guide.md` and `content.md` can also be hand-edited; the next revision through the plugin will honor whatever's there.
 
 ## View your site
 
@@ -69,7 +69,7 @@ pnpm dev
 
 ## Architecture (one-liner)
 
-Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-deliver`) handle the dialog with you. Agents (`ui-ux-designer`, `content-writer`, `frontend-expert`) write the actual files in their own context. State lives in `state.json` plus a few human-readable markdown files.
+Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`) handle the dialog with you. Agents (`ui-ux-designer`, `content-writer`, `frontend-expert`, `deployer`) write the actual files in their own context. State lives in `state.json` plus a few human-readable markdown files.
 
 See `docs/specs/2026-04-26-web-builder-plugin-design.md` for the full design.
 

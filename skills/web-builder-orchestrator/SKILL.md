@@ -28,7 +28,11 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
      > A) Evet, etkilenenleri yeniden üret
      > B) Hayır, sadece beklediğim revizyona devam edelim
    
-     If A: skip the revise skill and re-run all agents (ui-ux-designer, content-writer, frontend-expert) — the brief is the source of truth and a manual edit invalidates everything downstream. After re-run, jump to step 4 (state.json update including new briefHash).
+     If A: this is a regeneration triggered by a manual brief edit. Treat it like a revision so undo still works:
+     - Run `git add . && git commit -q --allow-empty -m "Pre-revision snapshot (manual brief edit)"` from inside the project directory (the `--allow-empty` covers the case where the user already saved their brief edit but hasn't committed it).
+     - Re-run all primary agents (ui-ux-designer, content-writer, frontend-expert) sequentially with the standard retry policy.
+     - After agents finish successfully, run `git add . && git commit -q -m "Revision: manual-brief-edit — full regeneration"` and record the SHA in `state.json.lastRevisionSha`.
+     - Then jump to step 4 (state.json update including new briefHash) and step 6 (deliver) as usual.
      If B: proceed normally to step 1b.
    - If the hashes match: proceed to step 1b.
 
@@ -46,7 +50,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 
    ### Step 1c: Auto-commit + impact analysis + agent execution
    
-   1. **Auto-commit before changes** (sade mode silent): run `git add . && git commit -q -m "Pre-revision snapshot ({short timestamp})"` from inside the project directory. This commit is the target of any future "undo" operation.
+   1. **Auto-commit before changes** (sade mode silent): run `git add . && git commit -q --allow-empty -m "Pre-revision snapshot ({short timestamp})"` from inside the project directory. The `--allow-empty` ensures the commit succeeds even if the working tree was clean. This commit is the target of any future "undo" operation.
    
    2. **Impact analysis** — given the change record's `category`, determine which agents to re-run:
    
