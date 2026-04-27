@@ -18,8 +18,13 @@ You wrap up the generation by summarizing what's on disk and telling the user ho
 3. Output a friendly summary in the user's language. The summary must include:
    - Confirmation that the site is ready
    - The absolute path of the project directory
-   - A 1-sentence explanation of what each top-level markdown file is (`brief.md`, `style-guide.md`, `content.md`) and that the user can edit them by hand
+   - A 1-sentence explanation of what each top-level markdown file is (`brief.md`, `style-guide.md`, `content.md`, `seo.md`) and that the user can edit them by hand
    - A note that the user can re-run `/web-builder` later to revise this site (style, content, structure, behavior, deploy target, or undo the last change)
+
+3a. **A11y report surfacing.** Read `{projectPath}/a11y-report.md` if it exists.
+   - In **sade mode** (`state.json.mode === "simple"`): append a 1-line summary like "Erişilebilirlik kontrolü: {N} otomatik düzeltme uygulandı, {M} dikkat gerektiren bulgu var (a11y-report.md'de detay)." (or English equivalent). Mention the report file by name so the user knows where to look for details.
+   - In **dev mode** (`state.json.mode === "dev"`): surface the full Auto-fixed and Issues reported sections from a11y-report.md inline.
+   - If `a11y-report.md` doesn't exist: skip silently (accessibility-reviewer may have been skipped if frontend wasn't generated).
 
 4. **Preview prompt.** Ask the user (in their language):
 

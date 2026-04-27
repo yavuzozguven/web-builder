@@ -30,7 +30,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
    
      If A: this is a regeneration triggered by a manual brief edit. Treat it like a revision so undo still works:
      - Run `git add . && git commit -q --allow-empty -m "Pre-revision snapshot (manual brief edit)"` from inside the project directory (the `--allow-empty` covers the case where the user already saved their brief edit but hasn't committed it).
-     - Re-run all primary agents (ui-ux-designer, content-writer, frontend-expert) sequentially with the standard retry policy.
+     - Re-run the full pipeline per step 3's phases: ui-ux-designer → [content-writer + seo-expert parallel] → [frontend-expert + backend-engineer parallel for full-app] → accessibility-reviewer. Each phase uses the standard retry policy.
      - After agents finish successfully, run `git add . && git commit -q -m "Revision: manual-brief-edit — full regeneration"` and record the SHA in `state.json.lastRevisionSha`.
      - Then jump to step 4 (state.json update including new briefHash) and step 6 (deliver) as usual.
      If B: proceed normally to step 1b.
@@ -158,7 +158,13 @@ For every agent invocation:
 
 ## Concurrency
 
-Runs sequentially in the MVP: ui-ux-designer → content-writer → frontend-expert. (Spec calls for parallel content+seo, but seo isn't in MVP and parallel adds complexity for one extra agent.)
+The agent execution graph runs in 4 phases (see step 3 of Routing logic):
+- Phase 1 (sequential): ui-ux-designer
+- Phase 2 (parallel): content-writer + seo-expert (both depend only on brief + designer output, write to disjoint files)
+- Phase 3 (parallel): frontend-expert + backend-engineer (backend only for full-app; both consume content + seo)
+- Phase 4 (sequential): accessibility-reviewer (must wait for all generation to complete before scanning)
+
+Each parallel pair writes to non-overlapping files, so there is no write conflict.
 
 ## Tone
 
