@@ -15,8 +15,76 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 ## Routing logic
 
 1. Look in cwd for `.web-builder/state.json`.
-   - **If it exists:** tell the user "Şu an MVP olduğu için var olan projeyi düzenleyemiyorum, ama yeni bir tane oluşturabilirim — devam edelim mi?" (or English equivalent). If they decline, exit. Otherwise proceed.
-   - **If it does not exist:** proceed.
+   - **If it exists:** the user is editing an existing project. Proceed to step 1a.
+   - **If it does not exist:** treat as new project; proceed to step 2 (intake).
+
+   ### Step 1a: Existing project — manual-edit detection
+   
+   - Read `state.json.briefHash` and compute `shasum -a 256 brief.md | cut -d' ' -f1` of the current `brief.md`.
+   - If the hashes differ: the user manually edited `brief.md` since the last run. Tell the user, in plain language:
+   
+     > Brief dosyasını elle değiştirmişsin görüyorum. Etkilenen kısımları (stil/içerik/sayfalar — neye dokunduğuna bağlı) yeniden üreteyim mi?
+     >
+     > A) Evet, etkilenenleri yeniden üret
+     > B) Hayır, sadece beklediğim revizyona devam edelim
+   
+     If A: skip the revise skill and re-run all agents (ui-ux-designer, content-writer, frontend-expert) — the brief is the source of truth and a manual edit invalidates everything downstream. After re-run, jump to step 4 (state.json update including new briefHash).
+     If B: proceed normally to step 1b.
+   - If the hashes match: proceed to step 1b.
+
+   ### Step 1b: Continue or new
+   
+   > Geçen sefer **{siteName}** sitesini yapmıştık. Devam edelim mi yoksa yeni bir site mi başlatalım?
+   >
+   > A) Devam et (revize)
+   > B) Yeni site başlat
+   > C) İptal et
+   
+   - If A: invoke the `web-builder-revise` skill via the `Skill` tool. Wait for it to return a change record. Proceed to step 1c.
+   - If B: tell the user to `cd ..` to a parent directory and re-run `/web-builder` to start a new project (don't try to overwrite the existing project). Exit.
+   - If C: exit cleanly.
+
+   ### Step 1c: Auto-commit + impact analysis + agent execution
+   
+   1. **Auto-commit before changes** (sade mode silent): run `git add . && git commit -q -m "Pre-revision snapshot ({short timestamp})"` from inside the project directory. This commit is the target of any future "undo" operation.
+   
+   2. **Impact analysis** — given the change record's `category`, determine which agents to re-run:
+   
+      | Change category | Agents to re-run (in order) |
+      |---|---|
+      | `style` | `ui-ux-designer`, `frontend-expert` |
+      | `content` | `content-writer`, `frontend-expert` |
+      | `structure` | `ui-ux-designer` (if layout shifts), `content-writer`, `frontend-expert` |
+      | `behavior` | `frontend-expert` |
+      | `technical` | `frontend-expert` (for performance/cache); for deploy changes, route to deliver skill's deploy flow instead |
+      | `undo` | (no agents — see step 1d below) |
+      | `cancel` | exit cleanly |
+   
+   3. **Update brief.md and supporting docs** — based on the change record, edit `brief.md` (and any sub-document like `style-guide.md` description if relevant) to reflect the new intent BEFORE invoking agents. The agents will then read the updated brief and produce updated artifacts.
+      - For `style` change: update `## Stil Tercihi` section in `brief.md`.
+      - For `content` change: update relevant fields in `brief.md` (page list, content source notes).
+      - For `structure` change: update `## Sayfa Listesi` in `brief.md`.
+      - For `behavior` change: update `## Davranış / Etkileşim` in `brief.md`.
+      - For `technical` change: update `## Teknik` section if present, else add it.
+   
+   4. **Run agents in the determined set**, sequentially, with the same retry policy as initial generation (auto-retry once, always report failures, append every attempt to `state.json.agentRuns`).
+   
+   5. **Post-revision commit:** after agents finish successfully, run `git add . && git commit -q -m "Revision: {category} — {short description}"` from the project directory. The orchestrator records this commit's SHA in `state.json.lastRevisionSha`.
+   
+   6. Update `state.json`: `lastModified`, new `briefHash`, append entries to `agentRuns`. Skip step 5 (initial git commit) since git is already initialized.
+   
+   7. Invoke `web-builder-deliver` skill — but its preview/deploy prompts may be redundant after a revision. Pass a `mode: "post-revision"` hint so deliver can adapt (offer preview but skip deploy unless user asks).
+
+   ### Step 1d: Undo path
+   
+   When the change record is `category: undo`:
+   
+   1. Find the most recent commit whose message starts with `Revision:` — this is the target.
+   2. If no such commit exists, tell the user "Henüz geri alınacak bir revizyon yok." and exit.
+   3. Run `git revert --no-edit <sha>` from inside the project directory.
+   4. Update `state.json`: append an `agentRuns` entry with `agent: "undo"`, status `success`, the reverted commit's SHA in `wrote: ["git-revert"]`.
+   5. Tell the user, in plain language: "Son revizyon geri alındı. Site eski haline döndü."
+   6. Skip the deliver skill (no new artifacts to summarize).
 
 2. Invoke the `web-builder-intake` skill via the `Skill` tool. Wait for completion.
    - Intake returns the absolute path of the project subdirectory it created.
