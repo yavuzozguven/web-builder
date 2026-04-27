@@ -176,6 +176,9 @@ After all 5 questions are answered:
 ```markdown
 # Site Briefi: {siteName}
 
+## Scope
+{scope value: single-page | multi-page-static | interactive-static | full-app}
+
 ## Amaç
 {goal verbatim from Q1}
 
@@ -197,9 +200,16 @@ Hazır stil: {stylePreset name}
 
 ## Davranış / Etkileşim
 - Statik site, form yok.
+
+## Preferences (only populated in dev mode)
+- Priority: {simple | performance | feature-richness | claude-decides | null}
+- Interactivity: {low | medium | high | claude-decides | null}
+- Backend language: {same-as-frontend | node-separate | python | compiled | enterprise-jvm | claude-decides | null}
+- Database style: {simple | sql | document | none | claude-decides | null}
+- TypeScript: {true | false | claude-decides | null}
 ```
 
-If the user is writing in English, use English headings: `Goal`, `Audience`, `Pages`, `Content Source`, `User-Provided Content`, `Style`, `Interactivity`.
+If the user is writing in English, use English headings: `Scope`, `Goal`, `Audience`, `Pages`, `Content Source`, `Style`, `Interactivity`, `Preferences`.
 
 ## Return value
 
