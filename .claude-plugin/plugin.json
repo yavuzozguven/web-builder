@@ -1,6 +1,6 @@
 {
   "name": "web-builder",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "Build a website end-to-end through guided Q&A. Asks what you want, picks the stack, generates the code.",
   "author": {
     "name": "Yavuz Ozguven",
