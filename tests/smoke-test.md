@@ -13,7 +13,7 @@ Run this from a terminal with Claude Code installed and the web-builder plugin l
 
    Or, once published:
    ```
-   /plugin marketplace add github:yavuzozguven/web-builder
+   /plugin marketplace add yavuzozguven/web-builder
    /plugin install web-builder@web-builder
    ```
 

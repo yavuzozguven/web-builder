@@ -11,7 +11,7 @@ The plugin is **stack-agnostic**: it doesn't ship with a hardcoded list of frame
 The plugin is distributed as a single-plugin Claude Code marketplace. Add the marketplace and install in two steps (run inside a `claude` session):
 
 ```
-/plugin marketplace add github:yavuzozguven/web-builder
+/plugin marketplace add yavuzozguven/web-builder
 /plugin install web-builder@web-builder
 ```
 
