@@ -23,10 +23,10 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
    - Read `state.json.briefHash` and compute `shasum -a 256 brief.md | cut -d' ' -f1` of the current `brief.md`.
    - If the hashes differ: the user manually edited `brief.md` since the last run. Tell the user, in plain language:
    
-     > Brief dosyasını elle değiştirmişsin görüyorum. Etkilenen kısımları (stil/içerik/sayfalar — neye dokunduğuna bağlı) yeniden üreteyim mi?
+     > I see you edited the brief file by hand. Should I regenerate the affected parts (style/content/pages — depending on what you touched)?
      >
-     > A) Evet, etkilenenleri yeniden üret
-     > B) Hayır, sadece beklediğim revizyona devam edelim
+     > A) Yes, regenerate the affected parts
+     > B) No, just continue with the revision I was expecting
    
      If A: this is a regeneration triggered by a manual brief edit. Treat it like a revision so undo still works:
      - Run `git add . && git commit -q --allow-empty -m "Pre-revision snapshot (manual brief edit)"` from inside the project directory (the `--allow-empty` covers the case where the user already saved their brief edit but hasn't committed it).
@@ -38,11 +38,11 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 
    ### Step 1b: Continue or new
    
-   > Geçen sefer **{siteName}** sitesini yapmıştık. Devam edelim mi yoksa yeni bir site mi başlatalım?
+   > Last time we built the **{siteName}** site. Do you want to continue, or start a new site?
    >
-   > A) Devam et (revize)
-   > B) Yeni site başlat
-   > C) İptal et
+   > A) Continue (revise)
+   > B) Start a new site
+   > C) Cancel
    
    - If A: invoke the `web-builder-revise` skill via the `Skill` tool. Wait for it to return a change record. Proceed to step 1c.
    - If B: tell the user to `cd ..` to a parent directory and re-run `/web-builder` to start a new project (don't try to overwrite the existing project). Exit.
@@ -50,7 +50,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 
    ### Step 1c: Auto-commit + impact analysis + agent execution
    
-   1. **Auto-commit before changes** (sade mode silent): run `git add . && git commit -q --allow-empty -m "Pre-revision snapshot ({short timestamp})"` from inside the project directory. The `--allow-empty` ensures the commit succeeds even if the working tree was clean. This commit is the target of any future "undo" operation.
+   1. **Auto-commit before changes** (simple mode silent): run `git add . && git commit -q --allow-empty -m "Pre-revision snapshot ({short timestamp})"` from inside the project directory. The `--allow-empty` ensures the commit succeeds even if the working tree was clean. This commit is the target of any future "undo" operation.
    
    2. **Impact analysis** — given the change record's `category`, determine which agents to re-run:
    
@@ -65,11 +65,11 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
       | `cancel` | exit cleanly |
    
    3. **Update brief.md and supporting docs** — based on the change record, edit `brief.md` (and any sub-document like `style-guide.md` description if relevant) to reflect the new intent BEFORE invoking agents. The agents will then read the updated brief and produce updated artifacts.
-      - For `style` change: update `## Stil Tercihi` section in `brief.md`.
+      - For `style` change: update `## Style Preference` section in `brief.md`.
       - For `content` change: update relevant fields in `brief.md` (page list, content source notes).
-      - For `structure` change: update `## Sayfa Listesi` in `brief.md`.
-      - For `behavior` change: update `## Davranış / Etkileşim` in `brief.md`.
-      - For `technical` change: update `## Teknik` section if present, else add it.
+      - For `structure` change: update `## Pages` in `brief.md`.
+      - For `behavior` change: update `## Behavior / Interaction` in `brief.md`.
+      - For `technical` change: update `## Technical` section if present, else add it.
    
    4. **Run agents in the determined set**, sequentially, with the same retry policy as initial generation (auto-retry once, always report failures, append every attempt to `state.json.agentRuns`).
    
@@ -84,10 +84,10 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
    When the change record is `category: undo`:
    
    1. Find the most recent commit whose message starts with `Revision:` — this is the target.
-   2. If no such commit exists, tell the user "Henüz geri alınacak bir revizyon yok." and exit.
+   2. If no such commit exists, tell the user "There's no revision to undo yet." and exit.
    3. Run `git revert --no-edit <sha>` from inside the project directory.
    4. Update `state.json`: append an `agentRuns` entry with `agent: "undo"`, status `success`, the reverted commit's SHA in `wrote: ["git-revert"]`.
-   5. Tell the user, in plain language: "Son revizyon geri alındı. Site eski haline döndü."
+   5. Tell the user, in plain language: "The last revision has been undone. The site is back to its previous state."
    6. Skip the deliver skill (no new artifacts to summarize).
 
 2. Invoke the `web-builder-intake` skill via the `Skill` tool. Wait for completion.
@@ -134,13 +134,13 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 
    **Step F — `accessibility-reviewer` agent**
 
-   Use Agent tool with `subagent_type: "accessibility-reviewer"`. Reads `state.json.chosenStack.frontend` (must be non-null), scans the generated code, applies inline fixes, writes `a11y-report.md`. In sade mode the fixes are silent; in dev mode the report is surfaced in the deliver step.
+   Use Agent tool with `subagent_type: "accessibility-reviewer"`. Reads `state.json.chosenStack.frontend` (must be non-null), scans the generated code, applies inline fixes, writes `a11y-report.md`. In simple mode the fixes are silent; in dev mode the report is surfaced in the deliver step.
 
 4. Update `.web-builder/state.json` (relative to the project directory you `cd`'d into in step 3):
    - Set `lastModified` to current ISO timestamp.
    - Set `briefHash` to SHA-256 of the current `brief.md` contents (compute via `Bash`: `shasum -a 256 brief.md | cut -d' ' -f1`).
 
-5. Initialize git in the project directory and create the initial commit (sade mode: silent; dev mode behavior is Plan 4):
+5. Initialize git in the project directory and create the initial commit (simple mode: silent; dev mode behavior is Plan 4):
    - If `.git/` does not exist in the project directory: run `git init -q`, `git add .`, `git commit -q -m "Initial generation by web-builder"`.
    - If `.git/` already exists (user pre-initialized): skip init, but still run `git add .` and `git commit -q -m "Initial generation by web-builder"`.
    - Update `.web-builder/state.json` to add `"gitInitialized": true` and capture the initial commit SHA in a new `"initialCommitSha"` field.
@@ -153,7 +153,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 For every agent invocation:
 - Auto-retry once on failure.
 - Always report the failure (and retry result) to the user — never silent.
-- After two consecutive failures, pause and present three options: "tekrar dene" / "bu agent'ı atla" (only allowed for non-blocking agents — this MVP has none, so disable for now) / "iptal et".
+- After two consecutive failures, pause and present three options: "retry" / "skip this agent" (only allowed for non-blocking agents — this MVP has none, so disable for now) / "cancel".
 - Append every attempt (success or failure) to `state.json` `agentRuns` with timestamp and outcome.
 
 ## Concurrency

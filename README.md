@@ -2,7 +2,7 @@
 
 A Claude Code plugin that builds you a complete website end-to-end through guided Q&A.
 
-You describe what you want — a one-pager for your CV, a multi-page tanıtım site for your café, a full-app for your team's tools — the plugin asks a few short questions, picks the most appropriate framework/language for the job, generates the code, and (optionally) deploys it.
+You describe what you want — a one-pager for your CV, a multi-page promo site for your cafe, a full-app for your team's tools — the plugin asks a few short questions, picks the most appropriate framework/language for the job, generates the code, and (optionally) deploys it.
 
 The plugin is **stack-agnostic**: it doesn't ship with a hardcoded list of frameworks. The agents pick from the current ecosystem at runtime — so the choice tracks what's actually best today, not what was best when the plugin was authored.
 
@@ -86,15 +86,15 @@ From inside a project folder:
 /web-builder:start
 ```
 
-The plugin asks "Devam et (revize) / Yeni site / İptal et". Pick "Devam et" and you get a structured Q&A:
+The plugin asks "Continue (revise) / New site / Cancel". Pick "Continue" and you get a structured Q&A:
 
-- **Stil** (renkler, font, layout)
-- **İçerik** (metinler, kontak)
-- **Yapı** (yeni sayfa, sayfa silme)
-- **Davranış** (form, animasyon)
-- **Teknik** (deploy, SEO meta, tercih değişikliği, scope, a11y recheck)
-- **Serbest yazım** (her şey)
-- **Son değişikliği geri al** (`git revert`)
+- **Style** (colors, font, layout)
+- **Content** (text, contact)
+- **Structure** (new page, delete page)
+- **Behavior** (form, animation)
+- **Technical** (deploy, SEO meta, preference change, scope, a11y recheck)
+- **Free-form** (anything)
+- **Undo last change** (`git revert`)
 
 Each revision auto-commits before/after, so undo is always available.
 

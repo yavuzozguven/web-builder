@@ -23,18 +23,18 @@ Run this from a terminal with Claude Code installed and the web-builder plugin l
    mkdir -p /tmp/web-builder-smoke && cd /tmp/web-builder-smoke
    ```
 
-## Test 1: Turkish, plugin-generated content, minimalist
+## Test 1: English, plugin-generated content, minimalist
 
 1. Run: `claude` (start Claude Code in this directory).
 2. In the prompt, type: `/web-builder:start`
-3. Expected: plugin asks Q1 in Turkish (because no language signal yet — should default to whichever; if it picks English, type your answer in Turkish and it should switch).
-4. Answer Q1: `Kadıköy'de küçük bir kafem var, kahve ve sandviç satıyorum, bir tanıtım sitesi istiyorum.`
-5. Expected: plugin summarizes "çok sayfalı tanıtım sitesi" interpretation; presents A/B/C choice. Pick A.
-6. Expected: plugin suggests 3 names + "kendin yaz" option. Pick the first suggestion (or type a custom name like `kadikoy-kahve`).
+3. Expected: plugin asks Q1 in the user's language.
+4. Answer Q1: `I have a small cafe in Brooklyn, I sell coffee and sandwiches, I want a promo site.`
+5. Expected: plugin summarizes "multi-page promo site" interpretation; presents A/B/C choice. Pick A.
+6. Expected: plugin suggests 3 names + "write your own" option. Pick the first suggestion (or type a custom name like `brooklyn-coffee`).
 7. Expected: plugin asks content source (A/B). Pick B.
 8. Expected: plugin asks style preset (A-E). Pick A (Minimalist).
 9. Expected: plugin runs three agents sequentially (designer → content → frontend), reporting progress. Frontend agent runs `pnpm install` and `pnpm build`.
-10. Expected: deliver skill summarizes the output and tells you how to view the site (`cd kadikoy-kahve && pnpm dev`).
+10. Expected: deliver skill summarizes the output and tells you how to view the site (`cd brooklyn-coffee && pnpm dev`).
 
 ## Verify
 
@@ -60,21 +60,21 @@ Expected: all pages render, navigation between pages works, hero image loads, pa
 Run: `cat .web-builder/state.json | python3 -m json.tool`
 Expected: `mode=simple`, `scope=multi-page-static`, `stack=astro+tailwind`, `siteName` matches chosen name, `agentRuns` has 3 entries, all `status=success`.
 
-## Test 2: English, user-provided content, dark/modern preset
+## Test 2: Different language, user-provided content, dark/modern preset
 
-Repeat Test 1 but in English. At Q4 pick A (user-provided), and supply a name + tagline + 1-2 lines of about-us text. At Q5 pick E.
+Repeat Test 1 in a different language. At Q4 pick A (user-provided), and supply a name + tagline + 1-2 lines of about-us text. At Q5 pick E.
 
-Expected: brief.md, content.md, and rendered site are in English.
+Expected: brief.md, content.md, and rendered site are in the chosen language.
 
 ## Test 3: Preview flow (after Test 1 generation)
 
-After Test 1 completes and the deliver skill prompts you with "Şimdi siteyi tarayıcında açıp görmek ister misin?":
+After Test 1 completes and the deliver skill prompts you with "Want to open the site in your browser now?":
 
-1. Pick **A) Evet, aç**.
-2. Expected: plugin runs `npm run dev` in the background, waits ~3s, then tells you to open http://localhost:4321 and that you can say "kapat" to stop.
+1. Pick **A) Yes, open it**.
+2. Expected: plugin runs `npm run dev` in the background, waits ~3s, then tells you to open http://localhost:4321 and that you can say "stop" to shut it down.
 3. Open http://localhost:4321 in a browser.
-4. Expected: site renders correctly (4 pages, Turkish content, Tailwind styles).
-5. Tell the plugin: "kapat".
+4. Expected: site renders correctly (4 pages, content in the chosen language, Tailwind styles).
+5. Tell the plugin: "stop".
 6. Expected: plugin kills the background dev server and confirms.
 
 Pass: dev server stops cleanly, no leftover process on port 4321.
@@ -83,8 +83,8 @@ Pass: dev server stops cleanly, no leftover process on port 4321.
 
 After preview is closed (or you skipped it), the deploy prompt appears.
 
-1. Pick **E) Sadece dosyalar — kendim yüklerim**.
-2. Expected: plugin invokes deployer with `target=local`, then surfaces a message like "Hazır dosyalar şu klasörde: /tmp/.../test-cafe/dist/".
+1. Pick **E) Just the files — I'll upload them myself**.
+2. Expected: plugin invokes deployer with `target=local`, then surfaces a message like "The ready files are in this folder: /tmp/.../test-cafe/dist/".
 3. Verify the path exists and contains the built `index.html`, `menu/`, etc.
 
 Pass: path printed correctly, dist/ contents intact.
@@ -110,10 +110,10 @@ To test the auth-needed flow without actually deploying:
 2. Run `/web-builder` end to end as in Test 1.
 3. At deploy prompt, pick **A) Cloudflare Pages**.
 4. Expected: plugin surfaces `needs-auth` message in plain language, telling you to run `wrangler login`.
-5. Without running login, tell the plugin "tamam" anyway.
+5. Without running login, tell the plugin "ok" anyway.
 6. Expected: plugin re-invokes deployer, which fails the auth check again, and surfaces the same message. (No auto-login attempt; respects user's choice.)
 7. Run `wrangler login` in another terminal.
-8. Tell the plugin "tamam" again.
+8. Tell the plugin "ok" again.
 9. Expected: this time deploy succeeds.
 
 Pass: no silent failures; auth handoff is clean and respects user agency.
@@ -124,12 +124,12 @@ After Test 1 generation succeeds:
 
 1. Without leaving the parent folder, run `/web-builder:start` again from the same parent.
 2. Plugin should detect the existing `.web-builder/state.json` (manual-edit check passes since brief.md unchanged).
-3. Plugin asks: "Geçen sefer kadikoy-kahve sitesini yapmıştık. Devam edelim mi yoksa yeni bir site mi?"
-4. Pick **A) Devam et (revize)**.
-5. Plugin invokes revise skill, asks "Neyi değiştirmek istersin?" — pick **A) Görsel stil**.
-6. Sub-question: pick **A) Renk paletini değiştir**.
-7. Tell the plugin: "Daha sıcak olsun, kahverengi ağırlıklı."
-8. Plugin confirms summary, you say "Evet, uygula".
+3. Plugin asks: "Last time we built the brooklyn-coffee site. Do you want to continue, or start a new site?"
+4. Pick **A) Continue (revise)**.
+5. Plugin invokes revise skill, asks "What do you want to change?" — pick **A) Visual style**.
+6. Sub-question: pick **A) Change the color palette**.
+7. Tell the plugin: "Make it warmer, more brown-leaning."
+8. Plugin confirms summary, you say "Yes, apply it".
 9. Plugin runs `ui-ux-designer` + `frontend-expert` (skipping `content-writer`).
 10. Plugin auto-commits before agents (look for "Pre-revision snapshot" commit) and after (look for "Revision: style — ..." commit).
 11. Plugin invokes deliver skill in post-revision mode.
@@ -145,15 +145,15 @@ Pass:
 Following Test 7's project state:
 
 1. Run `/web-builder:start` again from the parent.
-2. Pick **A) Devam et (revize)**, then **B) İçerik**, then **A) Belirli bir sayfanın metnini değiştir**.
-3. Plugin asks which page; say "Hakkımızda".
-4. Plugin asks what to change; say "Daha samimi bir tone, kafenin kuruluş hikayesi de eklensin."
+2. Pick **A) Continue (revise)**, then **B) Content**, then **A) Change the text on a specific page**.
+3. Plugin asks which page; say "About".
+4. Plugin asks what to change; say "More personal tone, include the cafe's founding story."
 5. Confirm and continue.
 6. Plugin runs `content-writer` + `frontend-expert` (NOT `ui-ux-designer`).
 
 Pass:
 - `state.json.agentRuns` has new `content-writer` + `frontend-expert` entries (and no new `ui-ux-designer` entry).
-- `content.md` "Page: Hakkımızda" section has updated text reflecting the new tone.
+- `content.md` "Page: About" section has updated text reflecting the new tone.
 - Dist rebuilt.
 
 ## Test 9: Undo
@@ -161,23 +161,23 @@ Pass:
 Following Test 8's project state:
 
 1. Run `/web-builder` again.
-2. Pick **A) Devam et (revize)**, then **G) Son değişikliği geri al**.
+2. Pick **A) Continue (revise)**, then **G) Undo last change**.
 3. Plugin runs `git revert --no-edit <sha>` on Test 8's revision commit.
-4. Plugin tells the user "Son revizyon geri alındı."
+4. Plugin tells the user "The last revision has been undone."
 
 Pass:
 - `git log --oneline` shows a new "Revert ..." commit at HEAD.
-- `content.md` "Page: Hakkımızda" section reverted to its Test 1 (or Test 7's pre-content-change) state.
+- `content.md` "Page: About" section reverted to its Test 1 (or Test 7's pre-content-change) state.
 - `state.json.agentRuns` has a new entry with `agent: "undo"`.
 - Re-running undo is allowed but only reverts the most recent revision commit each time (each call is a separate revert).
 
 ## Test 10: Manual brief.md edit detection (optional)
 
-1. After Test 1, manually edit `brief.md` — change "minimalist" to "playful" in the Stil Tercihi section.
+1. After Test 1, manually edit `brief.md` — change "minimalist" to "playful" in the Style Preference section.
 2. Save the file.
 3. Run `/web-builder` again from the parent.
-4. Plugin detects the briefHash mismatch and asks "Brief dosyasını elle değiştirmişsin görüyorum. Etkilenen kısımları yeniden üreteyim mi?"
-5. Pick **A) Evet**.
+4. Plugin detects the briefHash mismatch and asks "I see you edited the brief file by hand. Should I regenerate the affected parts?"
+5. Pick **A) Yes**.
 6. Plugin runs all 3 agents (designer, content, frontend) since the brief is the source of truth.
 
 Pass:
@@ -185,12 +185,12 @@ Pass:
 - New `style-guide.md` reflects "playful" preset (saturated colors instead of minimalist neutrals).
 - `briefHash` in `state.json` updated.
 
-## Test 11: Single-page scope (sade mode)
+## Test 11: Single-page scope (simple mode)
 
 1. Run `/web-builder` in a clean dir.
-2. At the scope question, pick A (tek sayfa).
+2. At the scope question, pick A (single page).
 3. Continue with default content + minimalist style.
-4. Plugin generates a project. The agent picks whatever it deems best for "tek sayfa" — could be vanilla HTML/CSS/JS, could be a tiny static site framework, depending on Claude's current view.
+4. Plugin generates a project. The agent picks whatever it deems best for "single page" — could be vanilla HTML/CSS/JS, could be a tiny static site framework, depending on Claude's current view.
 5. Verify: the project builds (or runs without a build, if vanilla); `state.json.chosenStack.frontend` is populated; `state.json.chosenStack.rationale` is non-empty.
 
 Pass:
@@ -198,11 +198,11 @@ Pass:
 - The project either has no build step (vanilla case) or `npm run build` (or equivalent) succeeds
 - Generated files reflect content.md (site title, sections) and style-guide.md (palette in CSS)
 
-## Test 12: Full-app scope (sade mode)
+## Test 12: Full-app scope (simple mode)
 
 1. Run `/web-builder` in a clean dir.
-2. At scope question, pick D (üye girişi / sipariş / veri kaydı).
-3. Use the takim-takip example from sample-brief-full-app.md as inspiration for your answers (or any small CRUD app description).
+2. At scope question, pick D (sign-in / orders / data persistence).
+3. Use the team-tracker example from sample-brief-full-app.md as inspiration for your answers (or any small CRUD app description).
 4. Plugin runs frontend-expert AND backend-engineer (state.json.agentRuns has both, with status=success).
 5. Both agents populate state.json.chosenStack (frontend, backend, database, rationale).
 
@@ -227,7 +227,7 @@ Pass:
 ## Test 14: Revise — change preferences (re-pick stack)
 
 1. After Test 11 generation succeeds, run `/web-builder:start` again.
-2. Pick A (devam et / revize), then E (technical), then E (Tercihlerimi değiştir).
+2. Pick A (continue / revise), then E (technical), then E (Change my preferences).
 3. Walk through the preference questions; change `priority` from `simple` to `feature-richness`.
 4. Plugin regenerates; the frontend-expert may pick a different stack (richer framework) and update `state.json.chosenStack.frontend`.
 
@@ -241,7 +241,7 @@ Pass:
 
 After Test 1 generation succeeds:
 
-1. Run `/web-builder:start` again from the parent (or look at the existing `kadikoy-kahve/` project).
+1. Run `/web-builder:start` again from the parent (or look at the existing `brooklyn-coffee/` project).
 2. Plugin runs the full pipeline; verify `seo.md` exists in the project directory.
 3. Open `seo.md` and verify it has:
    - Site-wide section with default site name, description, keywords, og policy
@@ -251,8 +251,8 @@ After Test 1 generation succeeds:
 
 Pass:
 - `seo.md` exists at `{projectPath}/seo.md`
-- Site title is in the user's language (Turkish for Test 1, English for Test 2)
-- All page slugs (e.g., /, /menu, /hakkimizda, /iletisim) appear in both Per-page SEO and Sitemap sections
+- Site title is in the user's language
+- All page slugs (e.g., /, /menu, /about, /contact) appear in both Per-page SEO and Sitemap sections
 - `state.json.agentRuns` has an entry for `seo-expert` with `wrote: ["seo.md"]` and `status: success`
 
 ## Test 16: A11y smoke (accessibility-reviewer agent)
@@ -279,7 +279,7 @@ Pass:
 ## Test 17: A11y recheck via revise (optional)
 
 1. After Test 1 + Test 16, manually edit a frontend file to introduce an a11y issue (e.g., remove an alt attribute from an `<img>`).
-2. Run `/web-builder` and pick A (revize) → E (technical) → G (a11y recheck).
+2. Run `/web-builder` and pick A (revise) → E (technical) → G (a11y recheck).
 3. Plugin re-runs only `accessibility-reviewer`.
 4. Verify the missing alt was auto-fixed and `a11y-report.md` lists it under "Auto-fixed issues".
 

@@ -1,25 +1,25 @@
-# Site Briefi: ada-yazilim-cv
+# Site Brief: ada-smith-cv
 
 ## Scope
 single-page
 
-## Amaç
-Ada Yılmaz'ın yazılım geliştirici CV / portfolio tek sayfası. Kendi adıyla domain alacak.
+## Purpose
+Ada Smith's software developer CV / portfolio single page. Will use a personal-name domain.
 
-## Hedef Kitle
-İşveren ve teknik recruiter'lar.
+## Target Audience
+Employers and technical recruiters.
 
-## Sayfa Listesi
-- Ana sayfa (tek sayfa içinde: hakkımda + projeler + iletişim bölümleri)
+## Page List
+- Home (single page with: about me + projects + contact sections)
 
-## İçerik Kaynağı
-Plugin örnek içerik üretecek (kullanıcı sonra düzenleyecek).
+## Content Source
+Plugin will generate sample content (user will edit it later).
 
-## Stil Tercihi
-Hazır stil: minimalist (siyah-beyaz + bir accent rengi)
+## Style Preference
+Preset style: minimalist (black-and-white + one accent color)
 
-## Davranış / Etkileşim
-- Tek sayfa, scroll-to-section navigasyonu yeterli.
+## Behavior / Interaction
+- Single page, scroll-to-section navigation is enough.
 
 ## Preferences
 - Priority: simple

@@ -11,7 +11,7 @@
 **v0.3.0 scope (vs. spec):**
 - New skill: `web-builder-revise` with 7-option Q&A (style / content / structure / behavior / technical / free-form / undo)
 - Orchestrator: structured "existing project" branch with manual-edit detection, impact analysis, auto-commit
-- Deliver skill: closing message gains a "revize için /web-builder'ı tekrar çalıştır" reminder
+- Deliver skill: closing message gains a "to revise, run /web-builder again" reminder
 - Smoke test: 3 new tests (style change → designer+frontend re-run, content change → content-writer+frontend re-run, undo → git revert verified)
 
 **Definition of done:** A user can run `/web-builder` in an already-generated project directory and: (a) be asked whether to continue or start fresh, (b) if continuing, pick one of 7 revision categories, (c) see only the affected agents re-run (verified by `state.json.agentRuns`), (d) the change is git-committed automatically, (e) the user can pick "undo" later to revert. Manual `brief.md` edits are detected via hash comparison and surfaced before agents run.
@@ -95,15 +95,15 @@ Ask one question at a time. Wait for the user's answer before proceeding.
 
 ### Q1: Top-level category
 
-> Tamam, **{siteName}** projesine dönüyoruz. Neyi değiştirmek istersin?
+> OK, back to the **{siteName}** project. What do you want to change?
 >
-> A) Görsel stil (renkler, font, layout)
-> B) İçerik (metinler, menü, kontak bilgileri)
-> C) Yapı/sayfa eklemek-çıkarmak (yeni sayfa, yeni bölüm, sayfa silme)
-> D) Davranış (form ekle, animasyon ekle, etkileşim değiştir)
-> E) Teknik (deploy ayarı, performance, SEO meta)
-> F) Bunlar değil, ben tarif edeyim — serbest yazayım
-> G) Son değişikliği geri al
+> A) Visual style (colors, font, layout)
+> B) Content (text, menu, contact info)
+> C) Structure / add-remove pages (new page, new section, delete page)
+> D) Behavior (add form, add animation, change interaction)
+> E) Technical (deploy setting, performance, SEO meta)
+> F) None of those — let me describe it freely
+> G) Undo last change
 
 Read `siteName` from `{projectPath}/.web-builder/state.json`.
 
@@ -120,14 +120,14 @@ The orchestrator will run `git revert` on the most recent revision commit. No fu
 
 ### If user picks F (free-form)
 
-> Anlat bakalım — ne değiştirelim?
+> Tell me — what should we change?
 
 After the user describes the change, infer which structured category (A-E) it falls into and confirm:
 
-> Anladığım kadarıyla bu bir "{inferred category}" değişikliği — doğru mu?
+> From what I understand this is a "{inferred category}" change — is that right?
 >
-> A) Evet
-> B) Hayır, başka bir kategori
+> A) Yes
+> B) No, a different category
 
 If A: proceed to that category's follow-up questions.
 If B: ask which category and proceed.
@@ -136,16 +136,16 @@ If B: ask which category and proceed.
 
 Ask one of these follow-ups (your choice based on user's likely intent):
 
-> Stil için ne değiştirelim?
+> What should we change about the style?
 >
-> A) Renk paletini değiştir
-> B) Font değiştir
-> C) Genel havayı (vibe) değiştir
-> D) Belirli bir bölümün stili (sadece header, sadece kart vs.)
+> A) Change the color palette
+> B) Change the font
+> C) Change the overall vibe
+> D) Style of a specific section (only header, only the cards, etc.)
 
 Then ask for the actual change:
 
-> Şu an: {current palette / font / vibe — read briefly from style-guide.md}. Ne istersin?
+> Right now: {current palette / font / vibe — read briefly from style-guide.md}. What would you like?
 
 Capture user's answer. Return:
 
@@ -157,12 +157,12 @@ description: <user's verbatim answer>
 
 ### If user picks B (content)
 
-> İçerik için ne?
+> What about the content?
 >
-> A) Belirli bir sayfanın metnini değiştir
+> A) Change the text on a specific page
 > B) Kontakt bilgileri (adres, telefon, e-posta)
-> C) Görsel değiştir
-> D) Yeni içerik ekle (yeni bölüm, yeni öğe — yeni sayfa değil)
+> C) Change an image
+> D) Add new content (new section, new item — not a new page)
 
 Then for each: ask the specific change. Capture the user's verbatim answer.
 
@@ -172,17 +172,17 @@ Return:
 category: content
 detail: <one of: page-text / contact / images / new-section>
 description: <user's verbatim answer>
-target-page: <if applicable, e.g. "Menü" or "Hakkımızda">
+target-page: <if applicable, e.g. "Menu" or "About">
 ```
 
 ### If user picks C (structure)
 
-> Yapı için?
+> What about the structure?
 >
 > A) Yeni sayfa ekle
 > B) Sayfa sil
-> C) Sayfa sırasını değiştir
-> D) Yeni bölüm ekle (var olan sayfaya)
+> C) Change the page order
+> D) Add a new section (to an existing page)
 
 Capture the change. Return:
 
@@ -194,12 +194,12 @@ description: <user's verbatim answer>
 
 ### If user picks D (behavior)
 
-> Davranış için?
+> What about behavior?
 >
-> A) İletişim formu ekle
+> A) Add a contact form
 > B) Animasyon ekle
 > C) Galeri / slider ekle
-> D) Başka bir etkileşim
+> D) Some other interaction
 
 Capture. Return:
 
@@ -213,12 +213,12 @@ description: <user's verbatim answer>
 
 > Teknik konularda?
 >
-> A) Deploy hedefi değiştir (örn. Cloudflare → Vercel)
-> B) Site adı / URL slug değiştir
-> C) SEO meta (title, description) değiştir
-> D) Performance / cache ayarları
+> A) Change the deploy target (e.g. Cloudflare → Vercel)
+> B) Change the site name / URL slug
+> C) Change SEO meta (title, description)
+> D) Performance / cache settings
 
-For category E, note: SEO meta and performance are partially Plan 5 (SEO/a11y agents). For now, surface a friendly note: "SEO ve performance için tam destek bir sonraki sürümde geliyor. Şimdilik basit değişiklikleri uygulayabilirim."
+For category E, note: SEO meta and performance are partially Plan 5 (SEO/a11y agents). For now, surface a friendly note: "Full SEO and performance support is coming in the next version. For now I can apply simple changes."
 
 Capture. Return:
 
@@ -232,11 +232,11 @@ description: <user's verbatim answer>
 
 Before returning the change record to the orchestrator, summarize what you understood and confirm:
 
-> Anladım. {summary of the change}. Devam edeyim mi?
+> Got it. {summary of the change}. Should I go ahead?
 >
-> A) Evet, uygula
-> B) Hayır, başka bir şey değiştirelim
-> C) İptal et
+> A) Yes, uygula
+> B) No, let's change something else
+> C) Cancel
 
 If A: return the change record.
 If B: go back to Q1.
@@ -280,11 +280,11 @@ git commit -m "feat: add web-builder-revise skill (7-option revision Q&A)"
 **Files:**
 - Modify: `skills/web-builder-orchestrator/SKILL.md`
 
-The current orchestrator step 1 has a placeholder: "MVP olduğu için var olan projeyi düzenleyemiyorum". Replace with the real branching logic.
+The current orchestrator step 1 has a placeholder: "since this is the MVP I can't edit an existing project". Replace with the real branching logic.
 
 - [ ] **Step 1: Read current orchestrator**
 
-Run: `cat skills/web-builder-orchestrator/SKILL.md`. Locate step 1 (the cwd state.json check) and the bullet that contains "MVP olduğu için var olan projeyi düzenleyemiyorum".
+Run: `cat skills/web-builder-orchestrator/SKILL.md`. Locate step 1 (the cwd state.json check) and the bullet that contains the MVP placeholder text.
 
 - [ ] **Step 2: Replace step 1 with real routing**
 
@@ -300,10 +300,10 @@ Use Edit to replace step 1 entirely. The new step 1:
    - Read `state.json.briefHash` and compute `shasum -a 256 brief.md | cut -d' ' -f1` of the current `brief.md`.
    - If the hashes differ: the user manually edited `brief.md` since the last run. Tell the user, in plain language:
    
-     > Brief dosyasını elle değiştirmişsin görüyorum. Etkilenen kısımları (stil/içerik/sayfalar — neye dokunduğuna bağlı) yeniden üreteyim mi?
+     > I see you edited the brief file by hand. Should I regenerate the affected parts (style/content/pages — depending on what you touched)?
      >
-     > A) Evet, etkilenenleri yeniden üret
-     > B) Hayır, sadece beklediğim revizyona devam edelim
+     > A) Yes, regenerate the affected parts
+     > B) No, just continue with the revision I was expecting
    
      If A: skip the revise skill and re-run all agents (ui-ux-designer, content-writer, frontend-expert) — the brief is the source of truth and a manual edit invalidates everything downstream. After re-run, jump to step 4 (state.json update including new briefHash).
      If B: proceed normally to step 1b.
@@ -311,11 +311,11 @@ Use Edit to replace step 1 entirely. The new step 1:
 
    ### Step 1b: Continue or new
    
-   > Geçen sefer **{siteName}** sitesini yapmıştık. Devam edelim mi yoksa yeni bir site mi başlatalım?
+   > Last time we built the **{siteName}** site. Do you want to continue, or start a new site?
    >
-   > A) Devam et (revize)
-   > B) Yeni site başlat
-   > C) İptal et
+   > A) Continue (revise)
+   > B) Start a new site
+   > C) Cancel
    
    - If A: invoke the `web-builder-revise` skill via the `Skill` tool. Wait for it to return a change record. Proceed to step 1c.
    - If B: tell the user to `cd ..` to a parent directory and re-run `/web-builder` to start a new project (don't try to overwrite the existing project). Exit.
@@ -323,7 +323,7 @@ Use Edit to replace step 1 entirely. The new step 1:
 
    ### Step 1c: Auto-commit + impact analysis + agent execution
    
-   1. **Auto-commit before changes** (sade mode silent): run `git add . && git commit -q -m "Pre-revision snapshot ({short timestamp})"` from inside the project directory. This commit is the target of any future "undo" operation.
+   1. **Auto-commit before changes** (simple mode silent): run `git add . && git commit -q -m "Pre-revision snapshot ({short timestamp})"` from inside the project directory. This commit is the target of any future "undo" operation.
    
    2. **Impact analysis** — given the change record's `category`, determine which agents to re-run:
    
@@ -338,10 +338,10 @@ Use Edit to replace step 1 entirely. The new step 1:
       | `cancel` | exit cleanly |
    
    3. **Update brief.md and supporting docs** — based on the change record, edit `brief.md` (and any sub-document like `style-guide.md` description if relevant) to reflect the new intent BEFORE invoking agents. The agents will then read the updated brief and produce updated artifacts.
-      - For `style` change: update `## Stil Tercihi` section in `brief.md`.
+      - For `style` change: update `## Style Preference` section in `brief.md`.
       - For `content` change: update relevant fields in `brief.md` (page list, content source notes).
-      - For `structure` change: update `## Sayfa Listesi` in `brief.md`.
-      - For `behavior` change: update `## Davranış / Etkileşim` in `brief.md`.
+      - For `structure` change: update `## Pages` in `brief.md`.
+      - For `behavior` change: update `## Behavior / Interaction` in `brief.md`.
       - For `technical` change: update `## Teknik` section if present, else add it.
    
    4. **Run agents in the determined set**, sequentially, with the same retry policy as initial generation (auto-retry once, always report failures, append every attempt to `state.json.agentRuns`).
@@ -357,10 +357,10 @@ Use Edit to replace step 1 entirely. The new step 1:
    When the change record is `category: undo`:
    
    1. Find the most recent commit whose message starts with `Revision:` — this is the target.
-   2. If no such commit exists, tell the user "Henüz geri alınacak bir revizyon yok." and exit.
+   2. If no such commit exists, tell the user "There's no revision to undo yet." and exit.
    3. Run `git revert --no-edit <sha>` from inside the project directory.
    4. Update `state.json`: append an `agentRuns` entry with `agent: "undo"`, status `success`, the reverted commit's SHA in `wrote: ["git-revert"]`.
-   5. Tell the user, in plain language: "Son revizyon geri alındı. Site eski haline döndü."
+   5. Tell the user, in plain language: "The last revision has been undone. The site is back to its previous state."
    6. Skip the deliver skill (no new artifacts to summarize).
 ````
 
@@ -416,7 +416,7 @@ Use Edit to replace the line:
 with:
 
 ```
-   - A reminder that the user can come back to this project anytime: re-run `/web-builder` from inside this project folder (`{projectPath}`) and pick "Devam et (revize)" to make changes — style, content, structure, behavior, deploy target, or undo the last change.
+   - A reminder that the user can come back to this project anytime: re-run `/web-builder` from inside this project folder (`{projectPath}`) and pick "Continue (revise)" to make changes — style, content, structure, behavior, deploy target, or undo the last change.
 ```
 
 - [ ] **Step 3: Verify**
@@ -459,12 +459,12 @@ After Test 1 generation succeeds:
 
 1. Without leaving the parent folder, run `/web-builder` again from the same parent.
 2. Plugin should detect the existing `.web-builder/state.json` (manual-edit check passes since brief.md unchanged).
-3. Plugin asks: "Geçen sefer kadikoy-kahve sitesini yapmıştık. Devam edelim mi yoksa yeni bir site mi?"
-4. Pick **A) Devam et (revize)**.
-5. Plugin invokes revise skill, asks "Neyi değiştirmek istersin?" — pick **A) Görsel stil**.
-6. Sub-question: pick **A) Renk paletini değiştir**.
-7. Tell the plugin: "Daha sıcak olsun, kahverengi ağırlıklı."
-8. Plugin confirms summary, you say "Evet, uygula".
+3. Plugin asks: "Last time we built the brooklyn-coffee site. Do you want to continue, or start a new site?"
+4. Pick **A) Continue (revise)**.
+5. Plugin invokes revise skill, asks "What do you want to change?" — pick **A) Visual style**.
+6. Sub-question: pick **A) Change the color palette**.
+7. Tell the plugin: "Make it warmer, more brown-leaning."
+8. Plugin confirms summary, you say "Yes, apply".
 9. Plugin runs `ui-ux-designer` + `frontend-expert` (skipping `content-writer`).
 10. Plugin auto-commits before agents (look for "Pre-revision snapshot" commit) and after (look for "Revision: style — ..." commit).
 11. Plugin invokes deliver skill in post-revision mode.
@@ -480,15 +480,15 @@ Pass:
 Following Test 7's project state:
 
 1. Run `/web-builder` again from the parent.
-2. Pick **A) Devam et (revize)**, then **B) İçerik**, then **A) Belirli bir sayfanın metnini değiştir**.
-3. Plugin asks which page; say "Hakkımızda".
-4. Plugin asks what to change; say "Daha samimi bir tone, kafenin kuruluş hikayesi de eklensin."
+2. Pick **A) Continue (revise)**, then **B) Content**, then **A) Change the text on a specific page**.
+3. Plugin asks which page; say "About".
+4. Plugin asks what to change; say "More personal tone, include the cafe's founding story."
 5. Confirm and continue.
 6. Plugin runs `content-writer` + `frontend-expert` (NOT `ui-ux-designer`).
 
 Pass:
 - `state.json.agentRuns` has new `content-writer` + `frontend-expert` entries (and no new `ui-ux-designer` entry).
-- `content.md` "Page: Hakkımızda" section has updated text reflecting the new tone.
+- `content.md` "Page: About" section has updated text reflecting the new tone.
 - Dist rebuilt.
 
 ## Test 9: Undo
@@ -496,23 +496,23 @@ Pass:
 Following Test 8's project state:
 
 1. Run `/web-builder` again.
-2. Pick **A) Devam et (revize)**, then **G) Son değişikliği geri al**.
+2. Pick **A) Continue (revise)**, then **G) Undo last change**.
 3. Plugin runs `git revert --no-edit <sha>` on Test 8's revision commit.
-4. Plugin tells the user "Son revizyon geri alındı."
+4. Plugin tells the user "The last revision has been undone."
 
 Pass:
 - `git log --oneline` shows a new "Revert ..." commit at HEAD.
-- `content.md` "Page: Hakkımızda" section reverted to its Test 1 (or Test 7's pre-content-change) state.
+- `content.md` "Page: About" section reverted to its Test 1 (or Test 7's pre-content-change) state.
 - `state.json.agentRuns` has a new entry with `agent: "undo"`.
 - Re-running undo is allowed but only reverts the most recent revision commit each time (each call is a separate revert).
 
 ## Test 10: Manual brief.md edit detection (optional)
 
-1. After Test 1, manually edit `brief.md` — change "minimalist" to "playful" in the Stil Tercihi section.
+1. After Test 1, manually edit `brief.md` — change "minimalist" to "playful" in the Style Preference section.
 2. Save the file.
 3. Run `/web-builder` again from the parent.
-4. Plugin detects the briefHash mismatch and asks "Brief dosyasını elle değiştirmişsin görüyorum. Etkilenen kısımları yeniden üreteyim mi?"
-5. Pick **A) Evet**.
+4. Plugin detects the briefHash mismatch and asks "I see you edited the brief file by hand. Should I regenerate the affected parts?"
+5. Pick **A) Yes**.
 6. Plugin runs all 3 agents (designer, content, frontend) since the brief is the source of truth.
 
 Pass:
@@ -549,13 +549,13 @@ Use Edit to replace the entire Status section. The current version (post-Plan 2)
 ```
 ## Status
 
-**v0.2.0.** Multi-page static sites (Astro + Tailwind), sade mode, with preview and deploy.
+**v0.2.0.** Multi-page static sites (Astro + Tailwind), simple mode, with preview and deploy.
 
 - ✅ Generate multi-page static site from Q&A
 - ✅ Preview locally (`npm run dev`) with one click
 - ✅ Deploy to Cloudflare Pages, Vercel, Netlify, or GitHub Pages
 - ✅ Local-only output for self-hosting
-- ✅ Auto git initialization in sade mode
+- ✅ Auto git initialization in simple mode
 
 Not yet supported (coming in later versions): tek-sayfa sites, full web apps, dev mode (technical stack overrides), revision flow, SEO/accessibility agents.
 ```
@@ -565,13 +565,13 @@ The new version:
 ```
 ## Status
 
-**v0.3.0.** Multi-page static sites (Astro + Tailwind), sade mode, full preview/deploy/revision loop.
+**v0.3.0.** Multi-page static sites (Astro + Tailwind), simple mode, full preview/deploy/revision loop.
 
 - ✅ Generate multi-page static site from Q&A
 - ✅ Preview locally (`npm run dev`) with one click
 - ✅ Deploy to Cloudflare Pages, Vercel, Netlify, or GitHub Pages
 - ✅ Local-only output for self-hosting
-- ✅ Auto git initialization in sade mode
+- ✅ Auto git initialization in simple mode
 - ✅ Revise existing projects: structured Q&A, impact-aware re-runs, undo, manual brief.md edit detection
 
 Not yet supported (coming in later versions): tek-sayfa sites, full web apps, dev mode (technical stack overrides), SEO/accessibility agents.
@@ -622,7 +622,7 @@ Since the revision flow's correctness is mostly about the orchestrator's prompt 
 
 1. Read `skills/web-builder-orchestrator/SKILL.md` and confirm the impact analysis table maps each category to the correct agent set.
 2. Read `skills/web-builder-revise/SKILL.md` and confirm each Q&A branch returns a JSON-style change record matching the orchestrator's expectations (category names align: `style`, `content`, `structure`, `behavior`, `technical`, `undo`, `cancel`).
-3. Dispatch a subagent acting as `web-builder-revise` against the existing test-cafe project (re-using Plan 1's smoke fixture) and verify it returns a well-formed change record for a "stil değiştir" scenario.
+3. Dispatch a subagent acting as `web-builder-revise` against the existing test-cafe project (re-using Plan 1's smoke fixture) and verify it returns a well-formed change record for a "change style" scenario.
 
 If the orchestrator's category names match the revise skill's output names, ship it. The actual git revert and agent re-run logic is exercised by the manual smoke tests (Tests 7-10) when the user runs them.
 
@@ -677,6 +677,6 @@ git branch -d <feature-branch>
 ## Risks and edge cases
 
 - **Conflicting manual edits + plugin revisions:** if the user edits both `brief.md` AND asks the plugin for a revision, the plugin re-runs all 3 agents (full regeneration). Documented in step 1a.
-- **Empty git history:** if `git revert` fails because there's no revision commit yet, the orchestrator surfaces "Henüz geri alınacak bir revizyon yok." Documented in step 1d.
+- **Empty git history:** if `git revert` fails because there's no revision commit yet, the orchestrator surfaces "There's no revision to undo yet." Documented in step 1d.
 - **Multiple undos in a row:** each undo is its own revert. The user can keep undoing until reaching the initial commit. After that, further undo attempts find no `Revision:` commit and exit cleanly.
 - **Agent re-run failures during revision:** orchestrator uses the same retry policy as initial generation (one auto-retry, always report). The pre-revision auto-commit ensures the user can always recover via undo even if agents fail.

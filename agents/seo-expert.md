@@ -55,8 +55,8 @@ Write `{projectPath}/seo.md`. Overwrite if exists.
 ```
 - / (priority 1.0, changefreq weekly)
 - /menu (priority 0.8, changefreq weekly)
-- /hakkimizda (priority 0.5, changefreq monthly)
-- /iletisim (priority 0.5, changefreq monthly)
+- /about (priority 0.5, changefreq monthly)
+- /contact (priority 0.5, changefreq monthly)
 ```
 
 (Adjust priorities/frequencies based on page importance from brief.md.)
@@ -70,7 +70,7 @@ Allow: /
 Sitemap: https://{deployedDomain}/sitemap.xml
 ```
 
-(For sade mode, leave `{deployedDomain}` as a placeholder; deployer fills it in if a deploy happens.)
+(For simple mode, leave `{deployedDomain}` as a placeholder; deployer fills it in if a deploy happens.)
 
 For full-app scope where some pages are auth-walled (e.g., /dashboard, /tasks), add `Disallow:` rules for those paths.
 ```

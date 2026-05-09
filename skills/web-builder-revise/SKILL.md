@@ -18,15 +18,15 @@ Ask one question at a time. Wait for the user's answer before proceeding.
 
 ### Q1: Top-level category
 
-> Tamam, **{siteName}** projesine dönüyoruz. Neyi değiştirmek istersin?
+> OK, back to the **{siteName}** project. What do you want to change?
 >
-> A) Görsel stil (renkler, font, layout)
-> B) İçerik (metinler, menü, kontak bilgileri)
-> C) Yapı/sayfa eklemek-çıkarmak (yeni sayfa, yeni bölüm, sayfa silme)
-> D) Davranış (form ekle, animasyon ekle, etkileşim değiştir)
-> E) Teknik (deploy ayarı, performance, SEO meta)
-> F) Bunlar değil, ben tarif edeyim — serbest yazayım
-> G) Son değişikliği geri al
+> A) Visual style (colors, font, layout)
+> B) Content (text, menu, contact info)
+> C) Structure / add-remove pages (new page, new section, delete page)
+> D) Behavior (add form, add animation, change interaction)
+> E) Technical (deploy setting, performance, SEO meta)
+> F) None of those — let me describe it freely
+> G) Undo last change
 
 Read `siteName` from `{projectPath}/.web-builder/state.json`.
 
@@ -43,14 +43,14 @@ The orchestrator will run `git revert` on the most recent revision commit. No fu
 
 ### If user picks F (free-form)
 
-> Anlat bakalım — ne değiştirelim?
+> Tell me — what should we change?
 
 After the user describes the change, infer which structured category (A-E) it falls into and confirm:
 
-> Anladığım kadarıyla bu bir "{inferred category}" değişikliği — doğru mu?
+> From what I understand this is a "{inferred category}" change — is that right?
 >
-> A) Evet
-> B) Hayır, başka bir kategori
+> A) Yes
+> B) No, a different category
 
 If A: proceed to that category's follow-up questions.
 If B: ask which category and proceed.
@@ -59,16 +59,16 @@ If B: ask which category and proceed.
 
 Ask one of these follow-ups (your choice based on user's likely intent):
 
-> Stil için ne değiştirelim?
+> What should we change about the style?
 >
-> A) Renk paletini değiştir
-> B) Font değiştir
-> C) Genel havayı (vibe) değiştir
-> D) Belirli bir bölümün stili (sadece header, sadece kart vs.)
+> A) Change the color palette
+> B) Change the font
+> C) Change the overall vibe
+> D) Style of a specific section (only header, only the cards, etc.)
 
 Then ask for the actual change:
 
-> Şu an: {current palette / font / vibe — read briefly from style-guide.md}. Ne istersin?
+> Right now: {current palette / font / vibe — read briefly from style-guide.md}. What would you like?
 
 Capture user's answer. Return:
 
@@ -80,12 +80,12 @@ description: <user's verbatim answer>
 
 ### If user picks B (content)
 
-> İçerik için ne?
+> What about the content?
 >
-> A) Belirli bir sayfanın metnini değiştir
-> B) Kontakt bilgileri (adres, telefon, e-posta)
-> C) Görsel değiştir
-> D) Yeni içerik ekle (yeni bölüm, yeni öğe — yeni sayfa değil)
+> A) Change the text on a specific page
+> B) Contact info (address, phone, email)
+> C) Change an image
+> D) Add new content (new section, new item — not a new page)
 
 Then for each: ask the specific change. Capture the user's verbatim answer.
 
@@ -95,17 +95,17 @@ Return:
 category: content
 detail: <one of: page-text / contact / images / new-section>
 description: <user's verbatim answer>
-target-page: <if applicable, e.g. "Menü" or "Hakkımızda">
+target-page: <if applicable, e.g. "Menu" or "About">
 ```
 
 ### If user picks C (structure)
 
-> Yapı için?
+> What about the structure?
 >
-> A) Yeni sayfa ekle
-> B) Sayfa sil
-> C) Sayfa sırasını değiştir
-> D) Yeni bölüm ekle (var olan sayfaya)
+> A) Add a new page
+> B) Delete a page
+> C) Change the page order
+> D) Add a new section (to an existing page)
 
 Capture the change. Return:
 
@@ -117,12 +117,12 @@ description: <user's verbatim answer>
 
 ### If user picks D (behavior)
 
-> Davranış için?
+> What about behavior?
 >
-> A) İletişim formu ekle
-> B) Animasyon ekle
-> C) Galeri / slider ekle
-> D) Başka bir etkileşim
+> A) Add a contact form
+> B) Add an animation
+> C) Add a gallery / slider
+> D) Some other interaction
 
 Capture. Return:
 
@@ -134,17 +134,17 @@ description: <user's verbatim answer>
 
 ### If user picks E (technical)
 
-> Teknik konularda?
+> On the technical side?
 >
-> A) Deploy hedefi değiştir (örn. Cloudflare → Vercel)
-> B) Site adı / URL slug değiştir
-> C) SEO meta (title, description, og policy) değiştir
-> D) Performance / cache ayarları
-> E) Tercihlerimi değiştir (interaktivite, performans, dil tercihi vs. — agent yeniden stack seçecek)
-> F) Scope değiştir (örn. tek sayfa → çok sayfalı — büyük değişiklik, site yeniden üretilir)
-> G) Erişilebilirlik (a11y) tekrar kontrol et / iyileştirmeler uygula
+> A) Change the deploy target (e.g. Cloudflare → Vercel)
+> B) Change the site name / URL slug
+> C) Change SEO meta (title, description, og policy)
+> D) Performance / cache settings
+> E) Change my preferences (interactivity, performance, language preference, etc. — the agent will re-pick the stack)
+> F) Change scope (e.g. single page → multi-page — big change, the site is regenerated)
+> G) Re-run accessibility (a11y) check / apply improvements
 
-For category E, note: SEO meta and performance are partially Plan 5 (SEO/a11y agents). For now, surface a friendly note: "SEO ve performance için tam destek bir sonraki sürümde geliyor. Şimdilik basit değişiklikleri uygulayabilirim."
+For category E, note: SEO meta and performance are partially Plan 5 (SEO/a11y agents). For now, surface a friendly note: "Full SEO and performance support is coming in the next version. For now I can apply simple changes."
 
 Capture. Return:
 
@@ -187,11 +187,11 @@ The orchestrator on receiving `detail: a11y-recheck` runs ONLY the `accessibilit
 
 Before returning the change record to the orchestrator, summarize what you understood and confirm:
 
-> Anladım. {summary of the change}. Devam edeyim mi?
+> Got it. {summary of the change}. Should I go ahead?
 >
-> A) Evet, uygula
-> B) Hayır, başka bir şey değiştirelim
-> C) İptal et
+> A) Yes, apply it
+> B) No, let's change something else
+> C) Cancel
 
 If A: return the change record.
 If B: go back to Q1.
@@ -201,5 +201,5 @@ If C: return `{category: cancel}` and the orchestrator exits cleanly.
 
 - Do not modify any files yourself. Your output is a change record passed to the orchestrator.
 - Keep questions short and concrete. Plain language; no technical jargon.
-- Match the user's language (Turkish or English).
+- Match the user's language.
 - Output the final change record as a JSON-style block at the end of your turn for the orchestrator to parse.

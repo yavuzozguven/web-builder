@@ -9,7 +9,7 @@ You collect what the user wants to build through a short Q&A and write the resul
 
 ## Constraints
 
-- **Sade mode (this skill is invoked from `/web-builder`):** ask scope (Q2 below); do NOT ask about frameworks or languages; the worker agents will pick automatically.
+- **Simple mode (this skill is invoked from `/web-builder`):** ask scope (Q2 below); do NOT ask about frameworks or languages; the worker agents will pick automatically.
 - **Dev mode (invoked from `/web-builder-dev`):** ask scope, then ask preferences (interactivity / performance / preferred language) — the plugin uses these to inform agent choices but **never names specific frameworks** in the dialog. The agent picks at runtime.
 - Image strategy: contextual Unsplash placeholders for both modes.
 - The orchestrator passes you a `mode` parameter (`simple` or `dev`); branch on it.
@@ -21,20 +21,18 @@ Ask one question at a time. Wait for the user's answer before asking the next.
 
 ### Q1: Free-form intro
 
-> Selam! Sana yardım edeceğim. Önce bana biraz anlat: bu site ne için, kim için olacak? Birkaç cümle yeterli.
-
-(English version: "Tell me about it: what is this site for, and who is it for? A couple of sentences is enough.")
+> Hi! I'll help you out. First, tell me a bit: what is this site for, and who is it for? A couple of sentences is enough.
 
 Capture the answer as `goal`.
 
 ### Q2: Site scope
 
-> Ne tür bir site yapacağız?
+> What kind of site are we making?
 >
-> A) Tek sayfa (kısa tanıtım, one-pager)
-> B) Çok sayfalı tanıtım (ana sayfa + hakkımızda + iletişim falan, hafif ya da hiç etkileşim yok)
-> C) Çok sayfalı + bir-iki etkileşim (form, galeri, küçük JS özellikleri)
-> D) Üye girişi / sipariş / veri kaydı olan tam uygulama
+> A) Single page (short intro, one-pager)
+> B) Multi-page promo site (home + about + contact, light or no interaction)
+> C) Multi-page + a bit of interaction (form, gallery, small JS features)
+> D) Full app with sign-in / orders / data persistence
 
 Map the answer:
 - A → `single-page`
@@ -44,42 +42,42 @@ Map the answer:
 
 Capture as `scope`.
 
-In **dev mode only**, after scope, also ask the preference questions below. In **sade mode**, skip them entirely — the agents will pick reasonable defaults based on scope alone.
+In **dev mode only**, after scope, also ask the preference questions below. In **simple mode**, skip them entirely — the agents will pick reasonable defaults based on scope alone.
 
 ### Q2-dev-prefs: Dev mode preferences (only if mode == dev)
 
 #### Q2-dev-prefs-1: Performance vs simplicity
 
-> Bu site için ne daha önemli?
+> What matters more for this site?
 >
-> A) Mümkün olduğunca basit ve hızlı kurulum (build step bile olmasın istersen)
-> B) Modern, hızlı (küçük bundle, fast page loads)
-> C) İçerik/feature ağırlıklı (build complexity sorun değil, ama maintainable olsun)
-> D) Fark etmez, sen seç
+> A) As simple and quick to set up as possible (no build step if you want)
+> B) Modern, fast (small bundle, fast page loads)
+> C) Content/feature heavy (build complexity is fine, but should be maintainable)
+> D) Doesn't matter, you pick
 
 Capture as `preferences.priority` (one of `simple`, `performance`, `feature-richness`, `claude-decides`).
 
 #### Q2-dev-prefs-2: Interactivity (only ask for `interactive-static` or `full-app`)
 
-> Sitede ne kadar JS-tabanlı etkileşim olacak?
+> How much JS-based interaction will the site have?
 >
-> A) Az (sadece bir-iki yerde küçük etkileşim)
-> B) Orta (form'lar, küçük UI bileşenleri, biraz dinamik içerik)
-> C) Çok (gerçek anlamda app — sürekli state, complex flows)
-> D) Fark etmez, sen seç
+> A) Little (just a couple of small interactions)
+> B) Medium (forms, small UI components, a bit of dynamic content)
+> C) A lot (a real app — persistent state, complex flows)
+> D) Doesn't matter, you pick
 
 Capture as `preferences.interactivity` (one of `low`, `medium`, `high`, `claude-decides`).
 
 #### Q2-dev-prefs-3: Backend language (only ask for `full-app`)
 
-> Backend tarafı için bir dil/ekosistem tercihin var mı?
+> Any preference for the backend language/ecosystem?
 >
-> A) Frontend'le aynı paket olsun (tek node projesi)
-> B) Ayrı bir Node servisi
-> C) Python kullanmak isterim
-> D) Go / Rust / başka bir compiled language
-> E) Java / .NET ekosistemi
-> F) Fark etmez, sen seç
+> A) Same package as the frontend (a single node project)
+> B) A separate Node service
+> C) I'd like to use Python
+> D) Go / Rust / another compiled language
+> E) Java / .NET ecosystem
+> F) Doesn't matter, you pick
 
 Capture as `preferences.backendLang` (one of `same-as-frontend`, `node-separate`, `python`, `compiled`, `enterprise-jvm`, `claude-decides`).
 
@@ -87,23 +85,23 @@ The plugin does NOT enumerate specific frameworks. The agent picks within whiche
 
 #### Q2-dev-prefs-4: Database (only ask for `full-app`)
 
-> Database için tercihin?
+> Database preference?
 >
-> A) En basit (file-based, sıfır ayar — sen seçersin)
-> B) Klasik SQL (Postgres ya da benzeri — sen seçersin)
-> C) Document DB (MongoDB ya da benzeri — sen seçersin)
-> D) Yok / kendim halledeceğim
-> E) Fark etmez, sen seç
+> A) Simplest (file-based, zero setup — you pick)
+> B) Classic SQL (Postgres or similar — you pick)
+> C) Document DB (MongoDB or similar — you pick)
+> D) None / I'll handle it myself
+> E) Doesn't matter, you pick
 
 Capture as `preferences.dbStyle` (one of `simple`, `sql`, `document`, `none`, `claude-decides`).
 
 #### Q2-dev-prefs-5: TypeScript
 
-> TypeScript kullanalım mı?
+> Should we use TypeScript?
 >
-> A) Evet
-> B) Hayır
-> C) Sen seç (scope'a göre uygun olanı)
+> A) Yes
+> B) No
+> C) You pick (whichever fits the scope)
 
 Capture as `preferences.typescript` (one of `true`, `false`, `claude-decides`).
 
@@ -111,38 +109,38 @@ The whole point is: dev mode collects user-facing intent ("I want fast", "I pref
 
 ### Q3: Project name
 
-Suggest **3 names** based on the goal description from Q1 — make them concrete (mention location/topic if mentioned), short (kebab-case, ≤20 chars), and distinct. Add a "kendin yaz" option.
+Suggest **3 names** based on the goal description from Q1 — make them concrete (mention location/topic if mentioned), short (kebab-case, ≤20 chars), and distinct. Add a "write your own" option.
 
 Example:
 
-> Sana birkaç isim önerdim — beğenirsen seç, beğenmezsen kendin yaz:
+> Here are a few names I came up with — pick one you like, or write your own:
 >
-> • kadikoy-kahve
-> • mavi-kapi-cafe
-> • korner-kahve
-> • [veya kendin yaz]
+> • brooklyn-coffee
+> • blue-door-cafe
+> • corner-coffee
+> • [or write your own]
 
 Validate the chosen name: must be kebab-case, no spaces, no special characters except `-`. If invalid, ask again.
 
 ### Q4: Content source
 
-> İçerik (isim, menü, fotoğraflar, hakkımızda metni vs.) için:
+> For the content (name, menu, photos, about text, etc.):
 >
-> A) Ben vereceğim
-> B) Sen örnek içerik üret, sonra değiştiririm
+> A) I'll provide it
+> B) You generate sample content, I'll edit later
 
 If A: ask follow-ups in a focused way — collect the specific content the user has (name, contact info, page-specific text) in 1-3 follow-up questions, then move on. Don't drag this out.
 If B: note in the brief that placeholders will be used.
 
 ### Q5: Style preset
 
-> Görsel stil için bir tane seç:
+> Pick a visual style:
 >
-> A) Minimalist (sade, beyaz/siyah, az renk)
-> B) Playful (renkli, eğlenceli, yuvarlak hatlar)
-> C) Kurumsal (ciddi, mavi/gri, klasik)
-> D) Vintage (sıcak tonlar, retro fontlar)
-> E) Dark/Modern (koyu zemin, vurgulu renkler)
+> A) Minimalist (clean, white/black, few colors)
+> B) Playful (colorful, fun, rounded shapes)
+> C) Corporate (serious, blue/gray, classic)
+> D) Vintage (warm tones, retro fonts)
+> E) Dark/Modern (dark background, accent colors)
 
 Capture the choice as `stylePreset`.
 
@@ -162,7 +160,7 @@ After all 5 questions are answered:
    - `createdAt: <ISO timestamp>`
    - `lastModified: <ISO timestamp>`
    - `agentRuns: []` (empty array)
-   - `preferences: <only in dev mode; sade mode sets to null or empty {}>`:
+   - `preferences: <only in dev mode; simple mode sets to null or empty {}>`:
      - `priority: <captured from Q2-dev-prefs-1 | null>`
      - `interactivity: <captured from Q2-dev-prefs-2 | null>`
      - `backendLang: <captured from Q2-dev-prefs-3 | null>`
@@ -174,32 +172,32 @@ After all 5 questions are answered:
 ## brief.md template
 
 ```markdown
-# Site Briefi: {siteName}
+# Site Brief: {siteName}
 
 ## Scope
 {scope value: single-page | multi-page-static | interactive-static | full-app}
 
-## Amaç
+## Goal
 {goal verbatim from Q1}
 
-## Hedef Kitle
-{infer 1-2 lines from goal; if unsure, write "Belirtilmedi"}
+## Audience
+{infer 1-2 lines from goal; if unsure, write "Not specified"}
 
-## Sayfa Listesi
-- Ana sayfa
-- Hakkımızda
-- {plus 1-3 more pages inferred from goal: e.g., "Menü", "Hizmetler", "İletişim"}
+## Pages
+- Home
+- About
+- {plus 1-3 more pages inferred from goal: e.g., "Menu", "Services", "Contact"}
 
-## İçerik Kaynağı
-{"Kullanıcı verecek" or "Plugin örnek içerik üretecek (kullanıcı sonra düzenleyecek)"}
+## Content Source
+{"User-provided" or "Plugin will generate sample content (user will edit it later)"}
 
-{If user provided specific content in Q4-A, append a "## Kullanıcı Verdiği İçerik" section listing the items.}
+{If user provided specific content in Q4-A, append a "## User-Provided Content" section listing the items.}
 
-## Stil Tercihi
-Hazır stil: {stylePreset name}
+## Style Preference
+Preset style: {stylePreset name}
 
-## Davranış / Etkileşim
-- Statik site, form yok.
+## Behavior / Interaction
+- Static site, no forms.
 
 ## Preferences (only populated in dev mode)
 - Priority: {simple | performance | feature-richness | claude-decides | null}
@@ -209,7 +207,7 @@ Hazır stil: {stylePreset name}
 - TypeScript: {true | false | claude-decides | null}
 ```
 
-If the user is writing in English, use English headings: `Scope`, `Goal`, `Audience`, `Pages`, `Content Source`, `Style`, `Interactivity`, `Preferences`.
+If the user is writing in another language, translate the headings accordingly: `Scope`, `Goal`, `Audience`, `Pages`, `Content Source`, `Style`, `Interactivity`, `Preferences`.
 
 ## Return value
 

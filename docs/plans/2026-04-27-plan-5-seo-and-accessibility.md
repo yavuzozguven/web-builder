@@ -4,7 +4,7 @@
 
 **Goal:** Add two quality-pass agents to the pipeline: `seo-expert` (produces per-page SEO data — titles, descriptions, og policy, sitemap structure, robots) and `accessibility-reviewer` (reviews generated frontend code, applies fixes in place, writes `a11y-report.md`). Update the orchestrator's agent graph to run them at the right points: SEO in parallel with content-writer (both read the brief, both produce input for frontend-expert); accessibility review AFTER frontend code is generated.
 
-**Architecture:** Both new agents are stack-agnostic (consistent with Plan 4). `seo-expert` reads brief + content, writes `seo.md` — a structured markdown file that `frontend-expert` and (for full-app) `backend-engineer` consume to inject meta tags, generate sitemap, etc. `accessibility-reviewer` runs LAST, reads the generated code (whatever the chosen stack), applies inline fixes for common a11y issues (missing alt text, missing aria labels, color contrast, semantic HTML, keyboard navigation), and writes a report; in sade mode the fixes are silent, in dev mode the report is surfaced.
+**Architecture:** Both new agents are stack-agnostic (consistent with Plan 4). `seo-expert` reads brief + content, writes `seo.md` — a structured markdown file that `frontend-expert` and (for full-app) `backend-engineer` consume to inject meta tags, generate sitemap, etc. `accessibility-reviewer` runs LAST, reads the generated code (whatever the chosen stack), applies inline fixes for common a11y issues (missing alt text, missing aria labels, color contrast, semantic HTML, keyboard navigation), and writes a report; in simple mode the fixes are silent, in dev mode the report is surfaced.
 
 **Tech Stack:** Markdown + YAML frontmatter (Claude Code plugin format). The agents inspect generated code in any framework — they're framework-agnostic in their checks.
 
@@ -19,7 +19,7 @@
 - README + plugin.json bumped to v0.5.0
 
 **Definition of done:**
-- After running the full plugin pipeline, every project has `seo.md` (with per-page title/description/og policy/sitemap/robots) and `a11y-report.md` (or inline fixes if sade mode).
+- After running the full plugin pipeline, every project has `seo.md` (with per-page title/description/og policy/sitemap/robots) and `a11y-report.md` (or inline fixes if simple mode).
 - Generated frontend code includes correct meta tags from `seo.md`.
 - Generated frontend code passes basic a11y checks: every `<img>` has alt, every form input has label, headings hierarchical, no `<div>`-only nav, color contrast verified against style-guide palette.
 - Smoke test verifies both new agents ran successfully and their artifacts exist.
@@ -135,7 +135,7 @@ Write `{projectPath}/seo.md`. Overwrite if exists.
 
 ## Per-page SEO
 
-### Page: Ana sayfa (/)
+### Page: Home (/)
 - Title (used in `<title>`): {compelling, includes primary keyword, ≤60 chars}
 - Meta description: {summary tied to hero subheading, ≤160 chars, action-oriented}
 - Canonical: /
@@ -152,8 +152,8 @@ Write `{projectPath}/seo.md`. Overwrite if exists.
 ```
 - / (priority 1.0, changefreq weekly)
 - /menu (priority 0.8, changefreq weekly)
-- /hakkimizda (priority 0.5, changefreq monthly)
-- /iletisim (priority 0.5, changefreq monthly)
+- /about (priority 0.5, changefreq monthly)
+- /contact (priority 0.5, changefreq monthly)
 ```
 
 (Adjust priorities/frequencies based on page importance from brief.md.)
@@ -167,7 +167,7 @@ Allow: /
 Sitemap: https://{deployedDomain}/sitemap.xml
 ```
 
-(For sade mode, leave `{deployedDomain}` as a placeholder; deployer fills it in if a deploy happens.)
+(For simple mode, leave `{deployedDomain}` as a placeholder; deployer fills it in if a deploy happens.)
 
 For full-app scope where some pages are auth-walled (e.g., /dashboard, /tasks), add `Disallow:` rules for those paths.
 ```
@@ -304,7 +304,7 @@ For each frontend source file, scan for these common issues:
 
 ## Fix policy
 
-- **Sade mode (`state.json.mode === "simple"`):** Apply all auto-fixable issues silently. Surface in `a11y-report.md` what was fixed and what was reported (not fixed). The user sees the summary in the deliver skill's closing message.
+- **Simple mode (`state.json.mode === "simple"`):** Apply all auto-fixable issues silently. Surface in `a11y-report.md` what was fixed and what was reported (not fixed). The user sees the summary in the deliver skill's closing message.
 - **Dev mode (`state.json.mode === "dev"`):** Apply auto-fixes AND surface the full report inline (as part of the deliver skill's closing). Dev users want to see what the reviewer did.
 
 ## Output: `a11y-report.md`
@@ -435,7 +435,7 @@ Replace the existing Step A/B/C/D structure with this new content:
 
    **Step F — `accessibility-reviewer` agent**
 
-   Use Agent tool with `subagent_type: "accessibility-reviewer"`. Reads `state.json.chosenStack.frontend` (must be non-null), scans the generated code, applies inline fixes, writes `a11y-report.md`. In sade mode the fixes are silent; in dev mode the report is surfaced in the deliver step.
+   Use Agent tool with `subagent_type: "accessibility-reviewer"`. Reads `state.json.chosenStack.frontend` (must be non-null), scans the generated code, applies inline fixes, writes `a11y-report.md`. In simple mode the fixes are silent; in dev mode the report is surfaced in the deliver step.
 ````
 
 - [ ] **Step 3: Update impact analysis table to include new agents**
@@ -572,7 +572,7 @@ The technical category currently has options A-F. Plan 5 makes SEO meta (option 
 In `skills/web-builder-revise/SKILL.md`, find the technical category sub-question listing options A-F. Add option G:
 
 ```
-> G) Erişilebilirlik (a11y) tekrar kontrol et / iyileştirmeler uygula
+> G) Re-run accessibility (a11y) check / apply improvements
 ```
 
 For G, return:
@@ -588,7 +588,7 @@ The orchestrator on receiving `detail: a11y-recheck` runs ONLY the `accessibilit
 For C (SEO meta): now actually backed by `seo-expert + frontend-expert` re-run. Update the C wording slightly:
 
 ```
-> C) SEO meta (title, description, og policy) değiştir
+> C) Change SEO meta (title, description, og policy)
 ```
 
 And the return record can stay the same `category: technical, detail: seo-meta` — orchestrator's impact analysis already says "SEO meta change → seo-expert + frontend-expert".
@@ -598,7 +598,7 @@ And the return record can stay the same `category: technical, detail: seo-meta` 
 Run: `grep -c "a11y-recheck" skills/web-builder-revise/SKILL.md`
 Expected: at least 1.
 
-Run: `grep -c "Erişilebilirlik" skills/web-builder-revise/SKILL.md`
+Run: `grep -c "accessibility" skills/web-builder-revise/SKILL.md`
 Expected: 1.
 
 Run: `tests/lint.sh`
@@ -618,20 +618,20 @@ git commit -m "feat: revise skill technical category gains a11y recheck option (
 **Files:**
 - Create: `tests/fixtures/sample-seo.md`
 
-A reference seo.md fixture for the kadikoy-kahve project (consistent with existing fixtures).
+A reference seo.md fixture for the brooklyn-coffee project (consistent with existing fixtures).
 
 - [ ] **Step 1: Write the fixture**
 
 Create `tests/fixtures/sample-seo.md`:
 
 ```markdown
-# SEO: kadikoy-kahve
+# SEO: brooklyn-coffee
 
 ## Site-wide
 
-- Default site name (used in `<title>` template): Kadıköy Kahve
-- Default description (homepage fallback): Kadıköy'ün küçük kahvecisi — üçüncü dalga kahve ve ev yapımı sandviçler.
-- Default keywords: kadıköy kahve, üçüncü dalga kahve, ev yapımı sandviç, mahalle kafesi
+- Default site name (used in `<title>` template): Brooklyn Coffee
+- Default description (homepage fallback): Brooklyn's little coffee shop — third-wave coffee and homemade sandwiches.
+- Default keywords: brooklyn coffee, third-wave coffee, homemade sandwiches, neighborhood cafe
 - Open Graph image policy:
   - Style: warm, low-key, neighborhood-cafe vibe — single warm-tone hero
   - Recommended dimensions: 1200x630
@@ -640,40 +640,40 @@ Create `tests/fixtures/sample-seo.md`:
 
 ## Per-page SEO
 
-### Page: Ana sayfa (/)
-- Title: Kadıköy Kahve — Mahallenin küçük kahvecisi
-- Meta description: Kadıköy'de üçüncü dalga kahve ve ev yapımı sandviçler. Mahallenin buluşma noktası.
+### Page: Home (/)
+- Title: Brooklyn Coffee — The neighborhood's little coffee shop
+- Meta description: Third-wave coffee and homemade sandwiches in Brooklyn. The neighborhood's gathering spot.
 - Canonical: /
-- Open Graph: title=Kadıköy Kahve, description=Mahallenin küçük kahvecisi, type=website, image=site-wide
+- Open Graph: title=Brooklyn Coffee, description=The neighborhood's little coffee shop, type=website, image=site-wide
 - Indexable: yes
 
-### Page: Menü (/menu)
-- Title: Menü — Kadıköy Kahve
-- Meta description: Üçüncü dalga kahve ve ev yapımı sandviç menümüz. Her sabah taze.
+### Page: Menu (/menu)
+- Title: Menu — Brooklyn Coffee
+- Meta description: Our third-wave coffee and homemade sandwich menu. Fresh every morning.
 - Canonical: /menu
-- Open Graph: title=Menü, description=Kahve ve sandviç menümüz, type=website, image=site-wide
+- Open Graph: title=Menu, description=Our coffee and sandwich menu, type=website, image=site-wide
 - Indexable: yes
 
-### Page: Hakkımızda (/hakkimizda)
-- Title: Hakkımızda — Kadıköy Kahve
-- Meta description: 2018'den beri Kadıköy'deyiz. Üç arkadaşın kurduğu küçük kafemiz.
-- Canonical: /hakkimizda
-- Open Graph: title=Hakkımızda, description=Kafemizin hikayesi, type=website, image=site-wide
+### Page: About (/about)
+- Title: About — Brooklyn Coffee
+- Meta description: We've been in Brooklyn since 2018. Our little cafe, founded by three friends.
+- Canonical: /about
+- Open Graph: title=About, description=Our cafe's story, type=website, image=site-wide
 - Indexable: yes
 
-### Page: İletişim (/iletisim)
-- Title: İletişim — Kadıköy Kahve
-- Meta description: Kadıköy Moda Caddesi'ndeyiz. Telefon, harita, çalışma saatleri.
-- Canonical: /iletisim
-- Open Graph: title=İletişim, description=Adresimiz ve çalışma saatleri, type=website, image=site-wide
+### Page: Contact (/contact)
+- Title: Contact — Brooklyn Coffee
+- Meta description: We're on Brooklyn's Main Street. Phone, map, hours.
+- Canonical: /contact
+- Open Graph: title=Contact, description=Our address and hours, type=website, image=site-wide
 - Indexable: yes
 
 ## Sitemap
 
 - / (priority 1.0, changefreq weekly)
 - /menu (priority 0.8, changefreq weekly)
-- /hakkimizda (priority 0.5, changefreq monthly)
-- /iletisim (priority 0.5, changefreq monthly)
+- /about (priority 0.5, changefreq monthly)
+- /contact (priority 0.5, changefreq monthly)
 
 ## robots.txt
 
@@ -687,7 +687,7 @@ Sitemap: https://{deployedDomain}/sitemap.xml
 
 ```bash
 git add tests/fixtures/sample-seo.md
-git commit -m "test: add sample-seo.md fixture (kadikoy-kahve project)"
+git commit -m "test: add sample-seo.md fixture (brooklyn-coffee project)"
 ```
 
 ---
@@ -710,7 +710,7 @@ Use Edit to insert the following before `## Pass criteria`:
 
 After Test 1 generation succeeds:
 
-1. Run `/web-builder` again from the parent (or look at the existing `kadikoy-kahve/` project).
+1. Run `/web-builder` again from the parent (or look at the existing `brooklyn-coffee/` project).
 2. Plugin runs the full pipeline; verify `seo.md` exists in the project directory.
 3. Open `seo.md` and verify it has:
    - Site-wide section with default site name, description, keywords, og policy
@@ -721,7 +721,7 @@ After Test 1 generation succeeds:
 Pass:
 - `seo.md` exists at `{projectPath}/seo.md`
 - Site title is in the user's language (Turkish for Test 1, English for Test 2)
-- All page slugs (e.g., /, /menu, /hakkimizda, /iletisim) appear in both Per-page SEO and Sitemap sections
+- All page slugs (e.g., /, /menu, /about, /contact) appear in both Per-page SEO and Sitemap sections
 - `state.json.agentRuns` has an entry for `seo-expert` with `wrote: ["seo.md"]` and `status: success`
 
 ## Test 16: A11y smoke (accessibility-reviewer agent)
@@ -785,14 +785,14 @@ Find the v0.4.0 Status section. Replace with:
 ```markdown
 ## Status
 
-**v0.5.0.** Full quality pass: per-page SEO and accessibility review run as part of every generation. All 4 site scopes supported, sade and dev modes, stack-agnostic agents.
+**v0.5.0.** Full quality pass: per-page SEO and accessibility review run as part of every generation. All 4 site scopes supported, simple and dev modes, stack-agnostic agents.
 
 - ✅ Generate any of 4 scope types from Q&A
-- ✅ Sade mode + dev mode (`/web-builder-dev`)
+- ✅ Simple mode + dev mode (`/web-builder-dev`)
 - ✅ Stack-agnostic plugin: agents pick framework/language at runtime
 - ✅ Stack pick recorded in `state.json.chosenStack`
 - ✅ Preview locally + deploy to Cloudflare Pages / Vercel / Netlify / GitHub Pages
-- ✅ Auto git initialization in sade mode
+- ✅ Auto git initialization in simple mode
 - ✅ Revise existing projects: structured Q&A + impact analysis + undo + preferences-change + a11y recheck
 - ✅ Per-page SEO: every site gets `seo.md` with titles, descriptions, og policy, sitemap, robots
 - ✅ Accessibility review: every generated frontend gets a pass for missing alt text, labels, semantic HTML, color contrast; auto-fixes inline + `a11y-report.md`
@@ -867,7 +867,7 @@ git tag -a v0.5.0 -m "v0.5.0: SEO + accessibility agents
 - New accessibility-reviewer agent (inline fixes + a11y-report.md)
 - Orchestrator graph: designer → [content + seo parallel] → [frontend + backend parallel] → a11y-reviewer (final)
 - frontend-expert and backend-engineer read seo.md for meta tags and sitemap
-- Revise skill: 'Erişilebilirlik tekrar kontrol' (G) re-runs only a11y agent
+- Revise skill: 'Re-run accessibility check' (G) re-runs only a11y agent
 - Stack-agnostic guardrail still clean (0 framework names in plugin code)
 "
 ```

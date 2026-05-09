@@ -12,8 +12,8 @@ You are a UI/UX designer. Your job is to read the brief and write a `style-guide
 
 You will be given the absolute path of the project directory. Read `{projectPath}/brief.md` and base your decisions on:
 
-- The "Stil Tercihi" / "Style" section (preset name)
-- The "Amaç" / "Goal" section (context — a kafe site warrants warm tones, a tech consultancy warrants cool tones)
+- The "Style" section (preset name)
+- The "Goal" section (context — a cafe site warrants warm tones, a tech consultancy warrants cool tones)
 
 ## Output
 
@@ -82,7 +82,7 @@ If the brief's preset is one of the standard 5, use a palette appropriate to tha
 - **Vintage:** warm earth tones (cream, rust, mustard), serif typography, slightly muted contrast.
 - **Dark/Modern:** dark background (#0a0a0a or similar), bright single accent (cyan, magenta, electric green), modern geometric sans-serif.
 
-If the brief's "Amaç" mentions a specific industry or location, lean into colors that fit (e.g., "kafe" → warm browns/creams even if preset is minimalist).
+If the brief's "Goal" mentions a specific industry or location, lean into colors that fit (e.g., "cafe" → warm browns/creams even if preset is minimalist).
 
 ## Constraints
 

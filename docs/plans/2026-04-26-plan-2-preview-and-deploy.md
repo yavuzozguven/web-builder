@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** After the MVP generates a site, give the user a one-click way to preview it locally in their browser and to deploy it to one of four cloud targets (Cloudflare Pages, Vercel, Netlify, GitHub Pages), all in plain language, with auto git initialization in sade mode.
+**Goal:** After the MVP generates a site, give the user a one-click way to preview it locally in their browser and to deploy it to one of four cloud targets (Cloudflare Pages, Vercel, Netlify, GitHub Pages), all in plain language, with auto git initialization in simple mode.
 
-**Architecture:** Add one new `deployer` agent that owns all deployment operations (CLI auth checks + per-target deploy + state.json updates). Enrich the existing `web-builder-deliver` skill with two interactive choice flows (preview + deploy) that come after the initial summary. Update the orchestrator to do a silent initial `git init` + commit in sade mode after agents finish (precondition for any deploy and for Plan 3's undo).
+**Architecture:** Add one new `deployer` agent that owns all deployment operations (CLI auth checks + per-target deploy + state.json updates). Enrich the existing `web-builder-deliver` skill with two interactive choice flows (preview + deploy) that come after the initial summary. Update the orchestrator to do a silent initial `git init` + commit in simple mode after agents finish (precondition for any deploy and for Plan 3's undo).
 
 **Tech Stack:** Markdown + YAML frontmatter (Claude Code plugin format). Bash for CLI tool invocation. Node.js dev server (`npm run dev`) for preview.
 
@@ -14,7 +14,7 @@
 - 4 deploy targets: Cloudflare Pages (default), Vercel, Netlify, GitHub Pages
 - 5th deploy option: "local only — I'll upload myself"
 - Preview: starts `npm run dev` in background, gives user the URL, kills server on user request
-- All flows in sade-mode plain language; technical CLI errors are translated when surfaced
+- All flows in simple-mode plain language; technical CLI errors are translated when surfaced
 
 **Definition of done:** A user runs `/web-builder` end to end, gets the site generated as in v0.1.0, then is asked (a) "do you want to see it in your browser?" and (b) "do you want to publish it on the internet?" — answering yes triggers the actual preview/deploy. State persists in `state.json`. Smoke test passes.
 
@@ -64,7 +64,7 @@ web-builder/
 |---|---|
 | `agents/deployer.md` | All deployment operations: auth checks, per-target deploy commands, state.json `deployment` updates |
 | `skills/web-builder-deliver/SKILL.md` | Final summary + interactive preview flow + interactive deploy flow → invokes deployer agent |
-| `skills/web-builder-orchestrator/SKILL.md` | (existing) + sade-mode silent `git init` + initial commit after agents finish |
+| `skills/web-builder-orchestrator/SKILL.md` | (existing) + simple-mode silent `git init` + initial commit after agents finish |
 
 ---
 
@@ -73,7 +73,7 @@ web-builder/
 **Files:**
 - Modify: `skills/web-builder-orchestrator/SKILL.md` (insert new step before existing step 5)
 
-**Why:** Plan 3's "undo" feature relies on git history. Plan 2's GitHub Pages deployment needs a git repo. Initial commit must happen automatically in sade mode (the user shouldn't need to know `git` exists).
+**Why:** Plan 3's "undo" feature relies on git history. Plan 2's GitHub Pages deployment needs a git repo. Initial commit must happen automatically in simple mode (the user shouldn't need to know `git` exists).
 
 - [ ] **Step 1: Read the current orchestrator skill**
 
@@ -86,7 +86,7 @@ Use `Edit` to insert the following between current step 4 and current step 5. Th
 New step body to insert:
 
 ```markdown
-5. Initialize git in the project directory and create the initial commit (sade mode: silent; dev mode behavior is Plan 4):
+5. Initialize git in the project directory and create the initial commit (simple mode: silent; dev mode behavior is Plan 4):
    - If `.git/` does not exist in the project directory: run `git init -q`, `git add .`, `git commit -q -m "Initial generation by web-builder"`.
    - If `.git/` already exists (user pre-initialized): skip init, but still run `git add .` and `git commit -q -m "Initial generation by web-builder"`.
    - Update `.web-builder/state.json` to add `"gitInitialized": true` and capture the initial commit SHA in a new `"initialCommitSha"` field.
@@ -118,7 +118,7 @@ Expected: `8 passed, 0 failed.`
 
 ```bash
 git add skills/web-builder-orchestrator/SKILL.md
-git commit -m "feat: orchestrator does initial git commit in sade mode"
+git commit -m "feat: orchestrator does initial git commit in simple mode"
 ```
 
 ---
@@ -160,7 +160,7 @@ Before the per-target deploy, verify that `dist/` exists in the project director
 ```
 status: failed
 reason: dist-missing
-human-readable: "Sitenin build edilmiş hali henüz yok. Önce `npm run build` çalışmış olmalı — bu normalde frontend-expert agent'ı tarafından yapılıyor."
+human-readable: "There's no built version of the site yet. `npm run build` should have been run first — this is normally done by the frontend-expert agent."
 ```
 
 The orchestrator should not invoke you if the build hasn't happened, but defensive check.
@@ -175,7 +175,7 @@ No CLI work. Compute the absolute path of `{projectPath}/dist/` and return:
 status: success
 target: local
 artifact: {absolute path to dist/}
-human-readable: "Hazır dosyalar şu klasörde: {path}. İstediğin yere kopyalayabilirsin (örnek: cPanel, FTP, kendi sunucun)."
+human-readable: "The ready files are in this folder: {path}. You can copy them anywhere you like (e.g., cPanel, FTP, your own server)."
 ```
 
 Do NOT update `state.json` for local target — there's no remote URL to record.
@@ -187,11 +187,11 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
    ```
    status: needs-auth
    target: cloudflare-pages
-   human-readable: "Cloudflare hesabına bağlanmamışsın. Şu komutu kendi terminalinde çalıştır, sonra bana 'tamam' de:
+   human-readable: "You're not connected to a Cloudflare account. Run this in your own terminal, then tell me 'ok':
    
    wrangler login
    
-   Eğer wrangler yüklü değilse: npm install -g wrangler"
+   If wrangler isn't installed: npm install -g wrangler"
    ```
 
    Return without proceeding. The orchestrator will re-invoke you after the user signals readiness.
@@ -220,7 +220,7 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
    status: success
    target: cloudflare-pages
    url: https://{siteName}.pages.dev
-   human-readable: "Site Cloudflare'de yayında! Adresin: {url}"
+   human-readable: "Site is live on Cloudflare! Address: {url}"
    ```
 
 ### `vercel`
@@ -229,11 +229,11 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
 
    ```
    status: needs-auth
-   human-readable: "Vercel hesabına bağlanmamışsın. Şunu kendi terminalinde çalıştır:
+   human-readable: "You're not connected to a Vercel account. Run this in your own terminal:
    
    vercel login
    
-   Eğer vercel CLI yoksa: npm install -g vercel"
+   If the vercel CLI isn't installed: npm install -g vercel"
    ```
 
 2. Deploy from project directory:
@@ -246,7 +246,7 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
 
 3. Update `state.json` `deployment` with `"type": "vercel"`, `"url": "<captured>"`, `"lastDeployAt"`.
 
-4. Return success with URL and human-readable confirmation in Turkish/English depending on user language.
+4. Return success with URL and human-readable confirmation in the user's language.
 
 ### `netlify`
 
@@ -254,11 +254,11 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
 
    ```
    status: needs-auth
-   human-readable: "Netlify hesabına bağlanmamışsın. Şunu çalıştır:
+   human-readable: "You're not connected to a Netlify account. Run this:
    
    netlify login
    
-   Yoksa kur: npm install -g netlify-cli"
+   If not installed: npm install -g netlify-cli"
    ```
 
 2. First-time site link: if `.netlify/state.json` does not exist in the project directory:
@@ -284,11 +284,11 @@ This target requires a GitHub repo for the project (separate from the plugin's o
 
    ```
    status: needs-auth
-   human-readable: "GitHub hesabına bağlanmamışsın. Şunu çalıştır:
+   human-readable: "You're not connected to a GitHub account. Run this:
    
    gh auth login
    
-   Yoksa kur: brew install gh"
+   If not installed: brew install gh"
    ```
 
 2. Check if remote `origin` exists in the project directory: `git remote get-url origin 2>/dev/null`. If not:
@@ -319,7 +319,7 @@ This target requires a GitHub repo for the project (separate from the plugin's o
    status: success
    target: github-pages
    url: https://{owner}.github.io/{repo}/
-   human-readable: "GitHub Pages için her şey hazırlandı. Birkaç dakika içinde site şurada yayında olacak: {url}. Build durumunu şuradan izleyebilirsin: {repoUrl}/actions"
+   human-readable: "Everything is set up for GitHub Pages. The site will be live at {url} in a few minutes. You can watch the build status at: {repoUrl}/actions"
    ```
 
 ## On any error
@@ -330,7 +330,7 @@ Capture the failed command's output. Return:
 status: failed
 target: <target>
 reason: <one-word category: cli-error / network / auth / build-missing / unknown>
-human-readable: "<plain-language explanation in user's language; if it's a CLI error, include the actual error text but prefix it with 'Detay:'>"
+human-readable: "<plain-language explanation in user's language; if it's a CLI error, include the actual error text but prefix it with 'Details:'>"
 ```
 
 The orchestrator will surface this to the user; do not try to recover automatically (deployment recovery requires user intent).
@@ -396,43 +396,43 @@ Use `Edit` to replace the entire `## Behavior` section (everything from `## Beha
 
 4. **Preview prompt.** Ask the user (in their language):
 
-   > Şimdi siteyi tarayıcında açıp görmek ister misin?
+   > Want to open the site in your browser now?
    >
-   > A) Evet, aç
-   > B) Hayır, geçelim
+   > A) Yes, open it
+   > B) No, skip
 
    If user picks **A**:
    - Use `Bash` with `run_in_background: true` to start `npm run dev` from inside the project directory. Capture the bash shell ID.
    - Wait ~3 seconds (use a Bash sleep or just monitor the bash output briefly until you see "Local" or "ready").
    - Tell the user, in plain language:
 
-     > Hazır! Tarayıcıda şu adresi aç: http://localhost:4321
+     > Ready! Open this address in your browser: http://localhost:4321
      >
-     > Görmek istediğin kadar baksın. Bittikten sonra bana **"kapat"** dersen, dev server'ı durdururum.
+     > Take as long as you like. When you're done, just say **"stop"** and I'll shut down the dev server.
 
-   - Save the shell ID in your context. When the user later says "kapat" / "stop" / "close" (in either language), use `KillShell` to terminate the bash process and confirm: "Dev server kapatıldı."
+   - Save the shell ID in your context. When the user later says "stop" / "close" (in any language), use `KillShell` to terminate the bash process and confirm: "Dev server stopped."
 
    If user picks **B**: print a quick reminder of how they can preview later (the existing instructions about `npm run dev`), and proceed to step 5.
 
 5. **Deploy prompt.** Ask the user (in their language):
 
-   > Siteyi internet'te yayınlamak ister misin? Birkaç ücretsiz seçenek var:
+   > Do you want to publish the site online? A few free options:
    >
-   > A) Cloudflare Pages (önerilen — en cömert ücretsiz plan, custom domain kolay)
-   > B) Vercel (Next.js için en doğal, statik için de iyi)
-   > C) Netlify (klasik, basit setup)
-   > D) GitHub Pages (kendi repo'na sahip olursun, build GitHub'da yapılır)
-   > E) Hayır şimdilik / Sadece dosyalar — kendim yüklerim
+   > A) Cloudflare Pages (recommended — most generous free plan, easy custom domains)
+   > B) Vercel (most natural for Next.js, also fine for static)
+   > C) Netlify (classic, simple setup)
+   > D) GitHub Pages (you own the repo, build runs on GitHub)
+   > E) Not now / Just the files — I'll upload them myself
 
    For each cloud option (A-D), before invoking the deployer agent, briefly explain in plain language what will happen:
 
-   - For **A**: "Cloudflare için `wrangler` adında bir komut satırı aracı gerek. Eğer giriş yapmamışsan sana göstereceğim. Sonra siteyi gönderip bir adres alacağız."
+   - For **A**: "Cloudflare needs a CLI tool called `wrangler`. If you're not logged in I'll show you how. Then we'll push the site and get a URL."
    - For **B**: similar phrasing for `vercel` CLI.
    - For **C**: similar phrasing for `netlify` CLI.
-   - For **D**: "GitHub'a bir repo açıp dosyaları göndereceğiz. Sonra GitHub kendi sunucularında build edip yayınlayacak. Senin terminalinde `gh` aracı yüklü olmalı."
+   - For **D**: "We'll create a GitHub repo and push the files. Then GitHub will build and publish on its own servers. You'll need the `gh` tool installed in your terminal."
    - For **E**: invoke deployer agent with `target=local`, surface the result, end.
 
-   Get user confirmation ("Devam edelim mi?" / "Should we proceed?") for cloud options, then:
+   Get user confirmation ("Should we proceed?") for cloud options, then:
 
 6. **Invoke deployer agent.** Use the `Agent` tool with `subagent_type: "deployer"`. Pass the project path, target, and siteName in the prompt:
 
@@ -578,9 +578,9 @@ Use `Edit` to add the following just before the existing `## Pass criteria` sect
 ````markdown
 ## Test 3: Preview flow (after Test 1 generation)
 
-After Test 1 completes and the deliver skill prompts you with "Şimdi siteyi tarayıcında açıp görmek ister misin?":
+After Test 1 completes and the deliver skill prompts you with "Want to open the site in your browser now?":
 
-1. Pick **A) Evet, aç**.
+1. Pick **A) Yes, open it**.
 2. Expected: plugin runs `npm run dev` in the background, waits ~3s, then tells you to open http://localhost:4321 and that you can say "kapat" to stop.
 3. Open http://localhost:4321 in a browser.
 4. Expected: site renders correctly (4 pages, Turkish content, Tailwind styles).
@@ -593,8 +593,8 @@ Pass: dev server stops cleanly, no leftover process on port 4321.
 
 After preview is closed (or you skipped it), the deploy prompt appears.
 
-1. Pick **E) Sadece dosyalar — kendim yüklerim**.
-2. Expected: plugin invokes deployer with `target=local`, then surfaces a message like "Hazır dosyalar şu klasörde: /tmp/.../test-cafe/dist/".
+1. Pick **E) Just the files — I'll upload them myself**.
+2. Expected: plugin invokes deployer with `target=local`, then surfaces a message like "The ready files are in this folder: /tmp/.../test-cafe/dist/".
 3. Verify the path exists and contains the built `index.html`, `menu/`, etc.
 
 Pass: path printed correctly, dist/ contents intact.
@@ -658,7 +658,7 @@ The current status reads:
 ```
 ## Status
 
-**v0.1.0 — MVP.** Multi-page static sites only (Astro + Tailwind). Sade mode only.
+**v0.1.0 — MVP.** Multi-page static sites only (Astro + Tailwind). Simple mode only.
 
 Not yet supported (coming in later versions): tek-sayfa sites, full web apps, dev mode (technical stack overrides), preview/deploy, revision flow, SEO/accessibility agents.
 ```
@@ -670,13 +670,13 @@ Use `Edit` to replace the Status section with:
 ```markdown
 ## Status
 
-**v0.2.0.** Multi-page static sites (Astro + Tailwind), sade mode, with preview and deploy.
+**v0.2.0.** Multi-page static sites (Astro + Tailwind), simple mode, with preview and deploy.
 
 - ✅ Generate multi-page static site from Q&A
 - ✅ Preview locally (`npm run dev`) with one click
 - ✅ Deploy to Cloudflare Pages, Vercel, Netlify, or GitHub Pages
 - ✅ Local-only output for self-hosting
-- ✅ Auto git initialization in sade mode
+- ✅ Auto git initialization in simple mode
 
 Not yet supported (coming in later versions): tek-sayfa sites, full web apps, dev mode (technical stack overrides), revision flow, SEO/accessibility agents.
 ```
@@ -735,7 +735,7 @@ git tag -a v0.2.0 -m "v0.2.0: preview + deploy + initial git commit
 
 - New deployer agent (Cloudflare Pages, Vercel, Netlify, GitHub Pages, local)
 - Deliver skill: interactive preview + deploy flows
-- Orchestrator: silent git init + initial commit in sade mode
+- Orchestrator: silent git init + initial commit in simple mode
 - Smoke test: covers preview and local-deploy paths
 "
 ```
@@ -756,7 +756,7 @@ git push --tags
 - [ ] All 8 tasks complete with lint passing.
 - [ ] Deployer agent file exists with all 5 target sections.
 - [ ] Deliver skill includes both preview prompt and deploy prompt with all 5 deploy options.
-- [ ] Orchestrator does silent `git init` + initial commit in sade mode.
+- [ ] Orchestrator does silent `git init` + initial commit in simple mode.
 - [ ] Structural smoke test of `local` target passes.
 - [ ] `git tag --list` shows `v0.2.0`.
 - [ ] No `TBD` / `TODO` strings in any active plugin file.

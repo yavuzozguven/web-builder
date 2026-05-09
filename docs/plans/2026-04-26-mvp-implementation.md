@@ -9,7 +9,7 @@
 **Tech Stack:** Markdown + YAML frontmatter (Claude Code plugin format). Node + pnpm to install Astro for the smoke test. No build system for the plugin itself.
 
 **MVP scope (vs. full spec):**
-- Sade mode only (`/web-builder` only; no `/web-builder-dev`)
+- Simple mode only (`/web-builder` only; no `/web-builder-dev`)
 - Hardcoded scope: multi-page static site
 - Hardcoded stack: Astro + Tailwind
 - 3 agents only (no `seo-expert`, `accessibility-reviewer`, `backend-engineer`, `deployer`)
@@ -60,7 +60,7 @@ web-builder/                                  # plugin repo root
 | File | Owns |
 |---|---|
 | `plugin.json` | Plugin metadata (name, version, description) |
-| `commands/web-builder.md` | Thin entry; instructs Claude to load orchestrator skill in sade mode |
+| `commands/web-builder.md` | Thin entry; instructs Claude to load orchestrator skill in simple mode |
 | `skills/web-builder-orchestrator/SKILL.md` | Top-level routing: read state → call intake → call agents in order → call deliver |
 | `skills/web-builder-intake/SKILL.md` | Q&A flow; writes `brief.md` |
 | `skills/web-builder-deliver/SKILL.md` | Final summary message; lists generated files |
@@ -128,7 +128,7 @@ Create `commands/web-builder.md`:
 description: Build a website end-to-end through guided Q&A.
 ---
 
-You are entering the web-builder flow in **sade mode** (plain language, no jargon, no stack-choice questions).
+You are entering the web-builder flow in **simple mode** (plain language, no jargon, no stack-choice questions).
 
 Use the `Skill` tool to invoke the `web-builder-orchestrator` skill, passing `mode=simple`.
 
@@ -180,7 +180,7 @@ You are the orchestrator for the web-builder plugin. You coordinate the flow but
 ## Routing logic
 
 1. Look in the current working directory for a file at `.web-builder/state.json`.
-   - **If it exists:** tell the user "şu an MVP sürümü olduğu için var olan projeyi düzenleyemiyorum, ama yeni bir tane oluşturabilirim — devam edelim mi?" (or English equivalent if the user is writing in English). If they decline, exit. If they accept, proceed to step 2.
+   - **If it exists:** tell the user "since this is the MVP version I can't edit an existing project right now, but I can create a new one — should we continue?" (translate to the user's language if needed). If they decline, exit. If they accept, proceed to step 2.
    - **If it does not exist:** proceed to step 2.
 
 2. Invoke the `web-builder-intake` skill via the `Skill` tool. Wait for it to complete. Intake will:
@@ -253,7 +253,7 @@ Ask one question at a time. Wait for the user's answer before asking the next.
 
 ### Q1: Free-form intro
 
-> Selam! Sana yardım edeceğim. Önce bana biraz anlat: bu site ne için, kim için olacak? Birkaç cümle yeterli.
+> Hi! I'll help you out. First, tell me a bit: what is this site for, and who is it for? A couple of sentences is enough.
 
 (English version: "Tell me about it: what is this site for, and who is it for? A couple of sentences is enough.")
 
@@ -263,15 +263,15 @@ Capture the answer as `goal`.
 
 Summarize what you understood and confirm the user wants a multi-page static site (a few simple pages, no logins, no shopping cart). Example phrasing:
 
-> Anladım — çok sayfalı bir tanıtım sitesi gibi duruyor (ana sayfa + hakkımızda + iletişim falan). Sence de öyle mi?
+> Got it — sounds like a multi-page promo site (home + about + contact, etc.). Does that sound right?
 >
-> A) Evet
+> A) Yes
 > B) Daha basit, tek sayfa yeter
-> C) Daha karmaşık (üye girişi / sipariş gibi şeyler de olsun)
+> C) More complex (with sign-in / orders, etc.)
 
 If the user picks **B** or **C**, respond:
 
-> Şu an MVP sürümünde sadece çok sayfalı tanıtım sitesi yapabiliyorum. Tek sayfalı veya daha karmaşık siteler yakında. İstersen yine çok sayfalı olarak devam edelim mi?
+> In the current MVP I can only make multi-page promo sites. Single-page or more complex sites are coming soon. Want to continue with multi-page anyway?
 
 If they decline, exit cleanly. Otherwise proceed.
 
@@ -281,33 +281,33 @@ Suggest **3 names** based on the goal description from Q1 — make them concrete
 
 Example:
 
-> Sana birkaç isim önerdim — beğenirsen seç, beğenmezsen kendin yaz:
+> Here are a few names I came up with — pick one you like, or write your own:
 >
-> • kadikoy-kahve
+> • brooklyn-coffee
 > • mavi-kapi-cafe
-> • korner-kahve
+> • corner-coffee
 > • [veya kendin yaz]
 
 Validate the chosen name: must be kebab-case, no spaces, no special characters except `-`. If invalid, ask again.
 
 ### Q4: Content source
 
-> İçerik (isim, menü, fotoğraflar, hakkımızda metni vs.) için:
+> For the content (name, menu, photos, about text, etc.):
 >
-> A) Ben vereceğim
-> B) Sen örnek içerik üret, sonra değiştiririm
+> A) I'll provide it
+> B) You generate sample content, I'll edit later
 
 If A: ask follow-ups in a focused way — collect the specific content the user has (name, contact info, page-specific text) in 1-3 follow-up questions, then move on. Don't drag this out.
 If B: note in the brief that placeholders will be used.
 
 ### Q5: Style preset
 
-> Görsel stil için bir tane seç:
+> Pick a visual style:
 >
-> A) Minimalist (sade, beyaz/siyah, az renk)
-> B) Playful (renkli, eğlenceli, yuvarlak hatlar)
+> A) Minimalist (clean, white/black, few colors)
+> B) Playful (colorful, fun, rounded shapes)
 > C) Kurumsal (ciddi, mavi/gri, klasik)
-> D) Vintage (sıcak tonlar, retro fontlar)
+> D) Vintage (warm tones, retro fonts)
 > E) Dark/Modern (koyu zemin, vurgulu renkler)
 
 Capture the choice as `stylePreset`.
@@ -325,29 +325,29 @@ After all 5 questions are answered:
 ## brief.md template
 
 ```markdown
-# Site Briefi: {siteName}
+# Site Brief: {siteName}
 
-## Amaç
+## Goal
 {goal verbatim from Q1}
 
-## Hedef Kitle
-{infer 1-2 lines from goal; if unsure, write "Belirtilmedi"}
+## Audience
+{infer 1-2 lines from goal; if unsure, write "Not specified"}
 
-## Sayfa Listesi
-- Ana sayfa
-- Hakkımızda
-- {plus 1-3 more pages inferred from goal: e.g., "Menü", "Hizmetler", "İletişim"}
+## Pages
+- Home
+- About
+- {plus 1-3 more pages inferred from goal: e.g., "Menu", "Services", "Contact"}
 
-## İçerik Kaynağı
-{"Kullanıcı verecek" or "Plugin örnek içerik üretecek (kullanıcı sonra düzenleyecek)"}
+## Content Source
+{"User-provided" or "Plugin will generate sample content (user will edit it later)"}
 
-{If user provided specific content in Q4-A, append a "## Kullanıcı Verdiği İçerik" section listing the items.}
+{If user provided specific content in Q4-A, append a "## User-Provided Content" section listing the items.}
 
-## Stil Tercihi
-Hazır stil: {stylePreset name}
+## Style Preference
+Preset style: {stylePreset name}
 
-## Davranış / Etkileşim
-- Statik site, form yok.
+## Behavior / Interaction
+- Static site, no forms.
 ```
 
 If the user is writing in English, use English headings: `Goal`, `Audience`, `Pages`, `Content Source`, `User-Provided Content`, `Style`, `Interactivity`.
@@ -395,8 +395,8 @@ You are a UI/UX designer. Your job is to read the brief and write a `style-guide
 
 You will be given the absolute path of the project directory. Read `{projectPath}/brief.md` and base your decisions on:
 
-- The "Stil Tercihi" / "Style" section (preset name)
-- The "Amaç" / "Goal" section (context — a kafe site warrants warm tones, a tech consultancy warrants cool tones)
+- The "Style" section (preset name)
+- The "Goal" section (context — a cafe site warrants warm tones, a tech consultancy warrants cool tones)
 
 ## Output
 
@@ -451,7 +451,7 @@ If the brief's preset is one of the standard 5, use a palette appropriate to tha
 - **Vintage:** warm earth tones (cream, rust, mustard), serif typography, slightly muted contrast.
 - **Dark/Modern:** dark background (#0a0a0a or similar), bright single accent (cyan, magenta, electric green), modern geometric sans-serif.
 
-If the brief's "Amaç" mentions a specific industry or location, lean into colors that fit (e.g., "kafe" → warm browns/creams even if preset is minimalist).
+If the brief's "Goal" mentions a specific industry or location, lean into colors that fit (e.g., "cafe" → warm browns/creams even if preset is minimalist).
 
 ## Constraints
 
@@ -520,12 +520,12 @@ Write **only** `{projectPath}/content.md`. Overwrite if exists.
 - Logo text: {usually same as site title}
 - Footer text: © {year} {site title} — {1 short line}
 
-## Page: Ana sayfa
+## Page: Home
 
 ### Hero
 - Heading: {compelling primary headline, 5-9 words}
 - Subheading: {1-2 sentences elaborating}
-- Primary CTA label: {"Menüyü Gör", "İletişime Geç", etc. — tied to goal}
+- Primary CTA label: {"See the Menu", "Get in Touch", etc. — tied to goal}
 - Hero image: https://images.unsplash.com/photo-{appropriate-id}?w=1600&q=80
   - Alt text: {descriptive}
   - PLACEHOLDER: yes
@@ -559,7 +559,7 @@ Write **only** `{projectPath}/content.md`. Overwrite if exists.
 
 - Match the site language (read it from the brief).
 - Keep copy short and concrete. No lorem ipsum.
-- Match the tone implied by the goal: a kafe site is warm and informal; a consultancy site is concise and professional.
+- Match the tone implied by the goal: a cafe site is warm and informal; a consultancy site is concise and professional.
 - Do not write any other files. Do not modify the brief or style-guide.
 - Output a one-line summary at the end: `content.md written: {N pages}, {N images}.`
 ````
@@ -864,7 +864,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 ## Routing logic
 
 1. Look in cwd for `.web-builder/state.json`.
-   - **If it exists:** tell the user "Şu an MVP olduğu için var olan projeyi düzenleyemiyorum, ama yeni bir tane oluşturabilirim — devam edelim mi?" (or English equivalent). If they decline, exit. Otherwise proceed.
+   - **If it exists:** tell the user "since this is the MVP I can't edit an existing project right now, but I can create a new one — should we continue?" (translate to the user's language if needed). If they decline, exit. Otherwise proceed.
    - **If it does not exist:** proceed.
 
 2. Invoke the `web-builder-intake` skill via the `Skill` tool. Wait for completion.
@@ -905,7 +905,7 @@ You are the orchestrator for the web-builder plugin. Skills handle dialog, agent
 For every agent invocation:
 - Auto-retry once on failure.
 - Always report the failure (and retry result) to the user — never silent.
-- After two consecutive failures, pause and present three options: "tekrar dene" / "bu agent'ı atla" (only allowed for non-blocking agents — this MVP has none, so disable for now) / "iptal et".
+- After two consecutive failures, pause and present three options: "retry" / "skip this agent" (only allowed for non-blocking agents — this MVP has none, so disable for now) / "cancel".
 - Append every attempt (success or failure) to `state.json` `agentRuns` with timestamp and outcome.
 
 ## Concurrency
@@ -973,14 +973,14 @@ You wrap up the generation by summarizing what's on disk and telling the user ho
    - A 1-sentence explanation of what each top-level markdown file is (`brief.md`, `style-guide.md`, `content.md`) and that the user can edit them by hand
    - Instructions to view the site, in plain language. **Do not say "run the dev server"** — say something like:
 
-     > Siteyi tarayıcında görmek için: bu klasöre git ve şu komutları çalıştır:
+     > To view the site in your browser: cd into this folder and run these commands:
      >
      > ```
      > cd {projectPath}
      > pnpm dev
      > ```
      >
-     > Sonra tarayıcıda [http://localhost:4321](http://localhost:4321) adresini aç.
+     > Then open [http://localhost:4321](http://localhost:4321) in your browser.
 
    - A note that preview, deploy, and revision features are coming in the next versions of the plugin.
 
@@ -1017,28 +1017,28 @@ These fixtures exist so you can sanity-check agent behavior without going throug
 - [ ] **Step 1: Write `tests/fixtures/sample-brief.md`**
 
 ```markdown
-# Site Briefi: kadikoy-kahve
+# Site Brief: brooklyn-coffee
 
-## Amaç
-Kadıköy'de küçük bir kafe için tanıtım sitesi. Üçüncü dalga kahve ve ev yapımı sandviçler.
+## Goal
+A promo site for a small cafe in Brooklyn. Third-wave coffee and homemade sandwiches.
 
-## Hedef Kitle
-Mahallenin sakinleri ve gezginler.
+## Audience
+Neighborhood residents and visitors.
 
-## Sayfa Listesi
-- Ana sayfa
-- Menü
-- Hakkımızda
-- İletişim
+## Pages
+- Home
+- Menu
+- About
+- Contact
 
-## İçerik Kaynağı
-Plugin örnek içerik üretecek (kullanıcı sonra düzenleyecek).
+## Content Source
+Plugin will generate sample content (user will edit it later).
 
-## Stil Tercihi
-Hazır stil: minimalist
+## Style Preference
+Preset style: minimalist
 
-## Davranış / Etkileşim
-- Statik site, form yok.
+## Behavior / Interaction
+- Static site, no forms.
 ```
 
 - [ ] **Step 2: Write `tests/fixtures/sample-style-guide.md`**
@@ -1088,33 +1088,33 @@ Warm, low-key, neighborhood-friendly. Plenty of whitespace, one earthy accent.
 # Site Content
 
 ## Site-wide
-- Site title: Kadıköy Kahve
-- Tagline: Mahallenin küçük kahvecisi.
-- Logo text: Kadıköy Kahve
-- Footer text: © 2026 Kadıköy Kahve — Üçüncü dalga kahve ve ev yapımı sandviç.
+- Site title: Brooklyn Coffee
+- Tagline: The neighborhood's little coffee shop.
+- Logo text: Brooklyn Coffee
+- Footer text: © 2026 Brooklyn Coffee — Third-wave coffee and homemade sandwiches.
 
-## Page: Ana sayfa
+## Page: Home
 
 ### Hero
-- Heading: Kadıköy'ün En Sıcak Kahvecisi
-- Subheading: El yapımı kahve, ev usulü sandviçler ve mahalle havası.
-- Primary CTA label: Menüyü Gör
+- Heading: Brooklyn's Coziest Coffee Shop
+- Subheading: Hand-crafted coffee, homestyle sandwiches, and a neighborhood vibe.
+- Primary CTA label: See the Menu
 - Hero image: https://source.unsplash.com/1600x900/?cafe,coffee
-  - Alt text: Sıcak ışıkta kahve dolu bir fincan
+  - Alt text: A cup full of coffee in warm light
   - PLACEHOLDER: yes
 
-### Section: Hikayemiz
-- Heading: 2018'den beri Kadıköy'deyiz
-- Body: Üç arkadaşın açtığı bu küçük yer, mahallenin buluşma noktası oldu. Her sabah taze kahve çekiyor, sandviçleri elde hazırlıyoruz.
+### Section: Our Story
+- Heading: We've been in Brooklyn since 2018
+- Body: This little place, opened by three friends, became the neighborhood's gathering spot. We grind fresh coffee every morning and prepare sandwiches by hand.
 
-## Page: Menü
+## Page: Menu
 {... abbreviated for fixture purposes ...}
 
 ## Image Inventory
 
 | File | Used on | Source | Replace with own? |
 |---|---|---|---|
-| hero-home | Ana sayfa hero | Unsplash | Recommended |
+| hero-home | Home hero | Unsplash | Recommended |
 ```
 
 - [ ] **Step 4: Commit**
@@ -1254,13 +1254,13 @@ Run this from a terminal with Claude Code installed and the web-builder plugin l
 1. Run: `claude` (start Claude Code in this directory).
 2. In the prompt, type: `/web-builder`
 3. Expected: plugin asks Q1 in Turkish (because no language signal yet — should default to whichever; if it picks English, type your answer in Turkish and it should switch).
-4. Answer Q1: `Kadıköy'de küçük bir kafem var, kahve ve sandviç satıyorum, bir tanıtım sitesi istiyorum.`
-5. Expected: plugin summarizes "çok sayfalı tanıtım sitesi" interpretation; presents A/B/C choice. Pick A.
-6. Expected: plugin suggests 3 names + "kendin yaz" option. Pick the first suggestion (or type a custom name like `kadikoy-kahve`).
+4. Answer Q1: `I have a small cafe in Brooklyn, I sell coffee and sandwiches, I want a promo site.`
+5. Expected: plugin summarizes "multi-page promo site" interpretation; presents A/B/C choice. Pick A.
+6. Expected: plugin suggests 3 names + "write your own" option. Pick the first suggestion (or type a custom name like `brooklyn-coffee`).
 7. Expected: plugin asks content source (A/B). Pick B.
 8. Expected: plugin asks style preset (A-E). Pick A (Minimalist).
 9. Expected: plugin runs three agents sequentially (designer → content → frontend), reporting progress. Frontend agent runs `pnpm install` and `pnpm build`.
-10. Expected: deliver skill summarizes the output and tells you how to view the site (`cd kadikoy-kahve && pnpm dev`).
+10. Expected: deliver skill summarizes the output and tells you how to view the site (`cd brooklyn-coffee && pnpm dev`).
 
 ## Verify
 
@@ -1329,7 +1329,7 @@ A Claude Code plugin that builds you a website end-to-end through guided Q&A. Yo
 
 ## Status
 
-**v0.1.0 — MVP.** Multi-page static sites only (Astro + Tailwind). Sade mode only.
+**v0.1.0 — MVP.** Multi-page static sites only (Astro + Tailwind). Simple mode only.
 
 Not yet supported (coming in later versions): tek-sayfa sites, full web apps, dev mode (technical stack overrides), preview/deploy, revision flow, SEO/accessibility agents.
 
@@ -1423,7 +1423,7 @@ Fix them. Re-run lint and smoke test. Commit the fixes with descriptive messages
 - [ ] **Step 4: Tag the release**
 
 ```bash
-git tag -a v0.1.0 -m "v0.1.0 MVP: sade mode + multi-page-static + 3 agents"
+git tag -a v0.1.0 -m "v0.1.0 MVP: simple mode + multi-page-static + 3 agents"
 git log --oneline
 git tag --list
 ```

@@ -1,31 +1,31 @@
-# Site Briefi: takim-takip
+# Site Brief: team-tracker
 
 ## Scope
 full-app
 
-## Amaç
-Küçük ekipler için basit görev takip uygulaması. Kullanıcılar üye olur, görev oluşturur, atayan, durumunu işaretler.
+## Purpose
+A simple task-tracking app for small teams. Users sign up, create tasks, assign them, mark status.
 
-## Hedef Kitle
-3-10 kişilik ekipler.
+## Target Audience
+Teams of 3-10 people.
 
-## Sayfa Listesi
-- Giriş / Üye Ol
-- Dashboard (kendi görevlerim)
-- Tüm görevler (filtre ile)
-- Görev detay
-- Ekip üyeleri
+## Page List
+- Login / Sign Up
+- Dashboard (my tasks)
+- All tasks (with filters)
+- Task detail
+- Team members
 
-## İçerik Kaynağı
-Plugin örnek içerik üretecek (UI string'ler dahil — buton labelları, hata mesajları, boş state'ler).
+## Content Source
+Plugin will generate sample content (including UI strings — button labels, error messages, empty states).
 
-## Stil Tercihi
-Hazır stil: kurumsal (mavi-gri palet, sade)
+## Style Preference
+Preset style: corporate (blue-gray palette, clean)
 
-## Davranış / Etkileşim
-- Auth: email + parola (OAuth yok bu sürümde)
-- CRUD: görev oluştur, düzenle, sil, atayan değiştir
-- Real-time: yok (manuel refresh yeterli)
+## Behavior / Interaction
+- Auth: email + password (no OAuth in this version)
+- CRUD: create task, edit, delete, change assignee
+- Real-time: none (manual refresh is enough)
 
 ## Preferences
 - Priority: feature-richness

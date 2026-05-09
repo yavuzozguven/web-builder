@@ -30,7 +30,7 @@ Before the per-target deploy, verify that `dist/` exists in the project director
 ```
 status: failed
 reason: dist-missing
-human-readable: "Sitenin build edilmiş hali henüz yok. Önce `npm run build` çalışmış olmalı — bu normalde frontend-expert agent'ı tarafından yapılıyor."
+human-readable: "There's no built version of the site yet. `npm run build` should have been run first — this is normally done by the frontend-expert agent."
 ```
 
 The orchestrator should not invoke you if the build hasn't happened, but defensive check.
@@ -45,7 +45,7 @@ No CLI work. Compute the absolute path of `{projectPath}/dist/` and return:
 status: success
 target: local
 artifact: {absolute path to dist/}
-human-readable: "Hazır dosyalar şu klasörde: {path}. İstediğin yere kopyalayabilirsin (örnek: cPanel, FTP, kendi sunucun)."
+human-readable: "The ready files are in this folder: {path}. You can copy them anywhere you like (e.g., cPanel, FTP, your own server)."
 ```
 
 Do NOT update `state.json` for local target — there's no remote URL to record.
@@ -57,11 +57,11 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
    ```
    status: needs-auth
    target: cloudflare-pages
-   human-readable: "Cloudflare hesabına bağlanmamışsın. Şu komutu kendi terminalinde çalıştır, sonra bana 'tamam' de:
+   human-readable: "You're not connected to a Cloudflare account. Run this in your own terminal, then tell me 'ok':
    
    wrangler login
    
-   Eğer wrangler yüklü değilse: npm install -g wrangler"
+   If wrangler isn't installed: npm install -g wrangler"
    ```
 
    Return without proceeding. The orchestrator will re-invoke you after the user signals readiness.
@@ -90,7 +90,7 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
    status: success
    target: cloudflare-pages
    url: {deployUrl}
-   human-readable: "Site Cloudflare'de yayında! Adresin: {deployUrl}"
+   human-readable: "Site is live on Cloudflare! Address: {deployUrl}"
    ```
 
 ### `vercel`
@@ -99,11 +99,11 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
 
    ```
    status: needs-auth
-   human-readable: "Vercel hesabına bağlanmamışsın. Şunu kendi terminalinde çalıştır:
+   human-readable: "You're not connected to a Vercel account. Run this in your own terminal:
    
    vercel login
    
-   Eğer vercel CLI yoksa: npm install -g vercel"
+   If the vercel CLI isn't installed: npm install -g vercel"
    ```
 
 2. Deploy from project directory:
@@ -116,7 +116,7 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
 
 3. Update `state.json` `deployment` with `"type": "vercel"`, `"url": "<captured>"`, `"lastDeployAt"`.
 
-4. Return success with URL and human-readable confirmation in Turkish/English depending on user language.
+4. Return success with URL and human-readable confirmation in the user's language.
 
 ### `netlify`
 
@@ -124,11 +124,11 @@ Do NOT update `state.json` for local target — there's no remote URL to record.
 
    ```
    status: needs-auth
-   human-readable: "Netlify hesabına bağlanmamışsın. Şunu çalıştır:
+   human-readable: "You're not connected to a Netlify account. Run this:
    
    netlify login
    
-   Yoksa kur: npm install -g netlify-cli"
+   If not installed: npm install -g netlify-cli"
    ```
 
 2. First-time site link: if `.netlify/state.json` does not exist in the project directory:
@@ -154,11 +154,11 @@ This target requires a GitHub repo for the project (separate from the plugin's o
 
    ```
    status: needs-auth
-   human-readable: "GitHub hesabına bağlanmamışsın. Şunu çalıştır:
+   human-readable: "You're not connected to a GitHub account. Run this:
    
    gh auth login
    
-   Yoksa kur: brew install gh"
+   If not installed: brew install gh"
    ```
 
 2. Check if remote `origin` exists in the project directory: `git remote get-url origin 2>/dev/null`. If not:
@@ -197,7 +197,7 @@ This target requires a GitHub repo for the project (separate from the plugin's o
    status: success
    target: github-pages
    url: https://{owner}.github.io/{repo}/
-   human-readable: "GitHub Pages için her şey hazırlandı. Birkaç dakika içinde site şurada yayında olacak: {url}. Build durumunu şuradan izleyebilirsin: {repoUrl}/actions"
+   human-readable: "Everything is set up for GitHub Pages. The site will be live at {url} in a few minutes. You can watch the build status at: {repoUrl}/actions"
    ```
 
 ## On any error
@@ -208,7 +208,7 @@ Capture the failed command's output. Return:
 status: failed
 target: <target>
 reason: <one-word category: cli-error / network / auth / build-missing / unknown>
-human-readable: "<plain-language explanation in user's language; if it's a CLI error, include the actual error text but prefix it with 'Detay:'>"
+human-readable: "<plain-language explanation in user's language; if it's a CLI error, include the actual error text but prefix it with 'Details:'>"
 ```
 
 The orchestrator will surface this to the user; do not try to recover automatically (deployment recovery requires user intent).

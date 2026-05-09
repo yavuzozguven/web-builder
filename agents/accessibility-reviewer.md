@@ -73,7 +73,7 @@ For each frontend source file, scan for these common issues:
 
 ## Fix policy
 
-- **Sade mode (`state.json.mode === "simple"`):** Apply all auto-fixable issues silently. Surface in `a11y-report.md` what was fixed and what was reported (not fixed). The user sees the summary in the deliver skill's closing message.
+- **Simple mode (`state.json.mode === "simple"`):** Apply all auto-fixable issues silently. Surface in `a11y-report.md` what was fixed and what was reported (not fixed). The user sees the summary in the deliver skill's closing message.
 - **Dev mode (`state.json.mode === "dev"`):** Apply auto-fixes AND surface the full report inline (as part of the deliver skill's closing). Dev users want to see what the reviewer did.
 
 ## Output: `a11y-report.md`

@@ -77,7 +77,7 @@ Create `LICENSE` with the standard MIT text:
 ```
 MIT License
 
-Copyright (c) 2026 Yavuz Özgüven
+Copyright (c) 2026 Yavuz Ozguven
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -138,7 +138,7 @@ First stable release. The plugin's functional surface defined in the v1 design s
 Highlights of the journey from v0.1.0:
 
 - All 4 site scopes (single page, multi-page static, interactive static, full app)
-- Sade mode (`/web-builder`) and dev mode (`/web-builder-dev`)
+- Simple mode (`/web-builder`) and dev mode (`/web-builder-dev`)
 - Stack-agnostic worker agents (frontend-expert and backend-engineer pick framework/language at runtime)
 - Preview + deploy to Cloudflare Pages, Vercel, Netlify, GitHub Pages, or local
 - Revision flow with impact analysis, undo, and manual-brief-edit detection
@@ -154,7 +154,7 @@ This is the first version intended for public install via the Claude Code plugin
 - `accessibility-reviewer` agent (inline a11y fixes + `a11y-report.md`)
 - Orchestrator graph: 4 phases (designer → [content + seo parallel] → [frontend + backend parallel] → a11y final)
 - Revise option G (a11y recheck — re-runs only a11y agent)
-- Deliver skill surfaces a11y-report.md (sade summary, dev verbose)
+- Deliver skill surfaces a11y-report.md (simple summary, dev verbose)
 
 ### Changed
 - `frontend-expert` reads seo.md and injects meta tags
@@ -168,10 +168,10 @@ This is the first version intended for public install via the Claude Code plugin
 - `backend-engineer` agent (stack-agnostic, full-app only)
 - Stack-agnostic worker agents (frontend-expert + backend-engineer pick at runtime)
 - `state.json.preferences` (user input) + `state.json.chosenStack` (agent decision)
-- Revise: "Tercihlerimi değiştir" + "Scope değiştir" options
+- Revise: "Change my preferences" + "Change scope" options
 
 ### Changed
-- Intake skill asks scope (sade) + preferences (dev) — never specific framework names
+- Intake skill asks scope (simple) + preferences (dev) — never specific framework names
 - Brief.md template uses Scope + Preferences sections
 - Critical guardrail: 0 framework name references in plugin code (except design-spec docs)
 
@@ -187,7 +187,7 @@ This is the first version intended for public install via the Claude Code plugin
 ### Added
 - `deployer` agent (Cloudflare Pages / Vercel / Netlify / GitHub Pages / local)
 - Deliver skill: interactive preview + deploy flows
-- Auto git initialization in sade mode
+- Auto git initialization in simple mode
 - Smoke tests for preview and local deploy (Tests 3-6)
 
 ## [0.1.0] - 2026-04-26
@@ -300,7 +300,7 @@ Use Write to fully replace `README.md` with:
 
 A Claude Code plugin that builds you a complete website end-to-end through guided Q&A.
 
-You describe what you want — a one-pager for your CV, a multi-page tanıtım site for your café, a full-app for your team's tools — the plugin asks a few short questions, picks the most appropriate framework/language for the job, generates the code, and (optionally) deploys it.
+You describe what you want — a one-pager for your CV, a multi-page promo site for your cafe, a full-app for your team's tools — the plugin asks a few short questions, picks the most appropriate framework/language for the job, generates the code, and (optionally) deploys it.
 
 The plugin is **stack-agnostic**: it doesn't ship with a hardcoded list of frameworks. The agents pick from the current ecosystem at runtime — so the choice tracks what's actually best today, not what was best when the plugin was authored.
 
@@ -367,15 +367,15 @@ From inside a project folder:
 /web-builder
 ```
 
-The plugin asks "Devam et (revize) / Yeni site / İptal et". Pick "Devam et" and you get a structured Q&A:
+The plugin asks "Continue (revise) / New site / Cancel". Pick "Continue" and you get a structured Q&A:
 
 - **Stil** (renkler, font, layout)
-- **İçerik** (metinler, kontak)
-- **Yapı** (yeni sayfa, sayfa silme)
-- **Davranış** (form, animasyon)
-- **Teknik** (deploy, SEO meta, tercih değişikliği, scope, a11y recheck)
-- **Serbest yazım** (her şey)
-- **Son değişikliği geri al** (`git revert`)
+- **Content** (text, contact)
+- **Structure** (new page, delete page)
+- **Behavior** (form, animation)
+- **Technical** (deploy, SEO meta, preference change, scope, a11y recheck)
+- **Free-form** (anything)
+- **Undo last change** (`git revert`)
 
 Each revision auto-commits before/after, so undo is always available.
 
@@ -558,7 +558,7 @@ cd /tmp/web-builder-install-test
 claude
 ```
 
-Type `/web-builder` and verify the plugin's intake skill triggers (asking the first question — "Bu site ne için, kim için olacak?" or English equivalent). You don't have to complete the flow — just verify the slash command is recognized and the orchestrator routes correctly.
+Type `/web-builder` and verify the plugin's intake skill triggers (asking the first question — "What is this site for, and who is it for?" — translated to the user's language as needed). You don't have to complete the flow — just verify the slash command is recognized and the orchestrator routes correctly.
 
 - [ ] **Step 3: Verify `/web-builder-dev` also works**
 

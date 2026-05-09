@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Support all 4 site scopes (single page, multi-page static, interactive static, full app) — in sade mode with sensible defaults, or in dev mode where the user can express preferences (interactivity level, performance priority, preferred language). The plugin **does not name specific frameworks anywhere**. Worker agents read user preferences from `state.json` and pick the most appropriate stack at runtime using Claude's current ecosystem knowledge.
+**Goal:** Support all 4 site scopes (single page, multi-page static, interactive static, full app) — in simple mode with sensible defaults, or in dev mode where the user can express preferences (interactivity level, performance priority, preferred language). The plugin **does not name specific frameworks anywhere**. Worker agents read user preferences from `state.json` and pick the most appropriate stack at runtime using Claude's current ecosystem knowledge.
 
 **Why stack-agnostic:** Frameworks evolve fast. A plan that hardcodes "Astro / Next.js / SvelteKit" is brittle — in 1-2 years a different stack may dominate. By delegating the choice to Claude at runtime, the plugin remains future-proof: whatever framework is best when the plugin runs gets used.
 
-**Architecture:** Two slash commands (`/web-builder` sade, `/web-builder-dev` dev). Intake asks scope (always) + preferences (dev mode only) — never enumerates frameworks. Worker agents (`ui-ux-designer`, `content-writer`, `frontend-expert`, new `backend-engineer`) each read scope + preferences from `state.json` and decide what to produce; `frontend-expert` and `backend-engineer` additionally pick a specific stack at runtime and record their choice in `state.json.chosenStack`. Orchestrator's agent execution graph adapts per scope (skip backend for static, parallel frontend+backend for full-app).
+**Architecture:** Two slash commands (`/web-builder` simple, `/web-builder-dev` dev). Intake asks scope (always) + preferences (dev mode only) — never enumerates frameworks. Worker agents (`ui-ux-designer`, `content-writer`, `frontend-expert`, new `backend-engineer`) each read scope + preferences from `state.json` and decide what to produce; `frontend-expert` and `backend-engineer` additionally pick a specific stack at runtime and record their choice in `state.json.chosenStack`. Orchestrator's agent execution graph adapts per scope (skip backend for static, parallel frontend+backend for full-app).
 
 **Tech Stack:** Markdown + YAML frontmatter (Claude Code plugin format). Generated projects span whatever Claude picks — typically modern frontend frameworks (vanilla / Astro-like / Next-like / SvelteKit-like / new entrants like Solid/Qwik) and backend frameworks (Node / Go / Python / Java / etc.) plus a database appropriate to the choice.
 
 **v0.4.0 scope:**
 - 4 user-facing scopes (single-page, multi-page-static, interactive-static, full-app) — the only enumeration the plugin owns
-- Sade mode: agents pick stack silently from minimal user input
+- Simple mode: agents pick stack silently from minimal user input
 - Dev mode: agents pick stack informed by user preferences (or fully delegate if user says "you decide")
 - New `backend-engineer` agent for full-app
 - All agents stack-agnostic in code; pick at runtime
@@ -45,7 +45,7 @@ web-builder/
 │   └── web-builder-dev.md                       # CREATE: dev mode entry
 ├── skills/
 │   ├── web-builder-orchestrator/SKILL.md        # MODIFY: scope-aware agent graph (parallel for full-app)
-│   ├── web-builder-intake/SKILL.md              # MODIFY: scope question (sade) + preference questions (dev)
+│   ├── web-builder-intake/SKILL.md              # MODIFY: scope question (simple) + preference questions (dev)
 │   ├── web-builder-revise/SKILL.md              # MODIFY: technical category gains preference-change option
 │   └── web-builder-deliver/SKILL.md             # MODIFY: scope-aware preview, deploy default
 ├── agents/
@@ -124,24 +124,24 @@ git commit -m "feat: add /web-builder-dev slash command (dev mode entry)"
 **Files:**
 - Modify: `commands/web-builder.md`
 
-The Plan 1 command says "no stack-choice questions". With Plan 4, the plugin still doesn't ask stack questions in sade mode — but it does ask the SCOPE question now. Update the description so it doesn't make a misleading claim.
+The Plan 1 command says "no stack-choice questions". With Plan 4, the plugin still doesn't ask stack questions in simple mode — but it does ask the SCOPE question now. Update the description so it doesn't make a misleading claim.
 
 - [ ] **Step 1: Read current command**
 
 Run: `cat commands/web-builder.md`
 
-- [ ] **Step 2: Replace the "sade mode" line**
+- [ ] **Step 2: Replace the "simple mode" line**
 
 Use Edit to replace:
 
 ```
-You are entering the web-builder flow in **sade mode** (plain language, no jargon, no stack-choice questions).
+You are entering the web-builder flow in **simple mode** (plain language, no jargon, no stack-choice questions).
 ```
 
 with:
 
 ```
-You are entering the web-builder flow in **sade mode** (plain language, no jargon — the plugin asks plain-language questions about the kind of site you want, and the framework/language choice is made automatically by the agent at generation time).
+You are entering the web-builder flow in **simple mode** (plain language, no jargon — the plugin asks plain-language questions about the kind of site you want, and the framework/language choice is made automatically by the agent at generation time).
 ```
 
 - [ ] **Step 3: Verify**
@@ -156,7 +156,7 @@ Expected: 1.
 
 ```bash
 git add commands/web-builder.md
-git commit -m "docs: update /web-builder description for multi-scope sade mode"
+git commit -m "docs: update /web-builder description for multi-scope simple mode"
 ```
 
 ---
@@ -185,7 +185,7 @@ with:
 ```markdown
 ## Constraints
 
-- **Sade mode (this skill is invoked from `/web-builder`):** ask scope (Q2 below); do NOT ask about frameworks or languages; the worker agents will pick automatically.
+- **Simple mode (this skill is invoked from `/web-builder`):** ask scope (Q2 below); do NOT ask about frameworks or languages; the worker agents will pick automatically.
 - **Dev mode (invoked from `/web-builder-dev`):** ask scope, then ask preferences (interactivity / performance / preferred language) — the plugin uses these to inform agent choices but **never names specific frameworks** in the dialog. The agent picks at runtime.
 - Image strategy: contextual Unsplash placeholders for both modes.
 - The orchestrator passes you a `mode` parameter (`simple` or `dev`); branch on it.
@@ -199,12 +199,12 @@ Use Edit to replace the entire current Q2 section (the one that confirms multi-p
 ````markdown
 ### Q2: Site scope
 
-> Ne tür bir site yapacağız?
+> What kind of site are we making?
 >
-> A) Tek sayfa (kısa tanıtım, one-pager)
-> B) Çok sayfalı tanıtım (ana sayfa + hakkımızda + iletişim falan, hafif ya da hiç etkileşim yok)
-> C) Çok sayfalı + bir-iki etkileşim (form, galeri, küçük JS özellikleri)
-> D) Üye girişi / sipariş / veri kaydı olan tam uygulama
+> A) Single page (short intro, one-pager)
+> B) Multi-page promo site (home + about + contact, light or no interaction)
+> C) Multi-page + a bit of interaction (form, gallery, small JS features)
+> D) Full app with sign-in / orders / data persistence
 
 Map the answer:
 - A → `single-page`
@@ -214,7 +214,7 @@ Map the answer:
 
 Capture as `scope`.
 
-In **dev mode only**, after scope, also ask the preference questions below. In **sade mode**, skip them entirely — the agents will pick reasonable defaults based on scope alone.
+In **dev mode only**, after scope, also ask the preference questions below. In **simple mode**, skip them entirely — the agents will pick reasonable defaults based on scope alone.
 ````
 
 - [ ] **Step 3: Add a new "Dev mode preferences" section after Q2**
@@ -226,36 +226,36 @@ Insert this new section right after Q2 (before Q3 — project name):
 
 #### Q2-dev-prefs-1: Performance vs simplicity
 
-> Bu site için ne daha önemli?
+> What matters more for this site?
 >
-> A) Mümkün olduğunca basit ve hızlı kurulum (build step bile olmasın istersen)
-> B) Modern, hızlı (küçük bundle, fast page loads)
-> C) İçerik/feature ağırlıklı (build complexity sorun değil, ama maintainable olsun)
-> D) Fark etmez, sen seç
+> A) As simple and quick to set up as possible (no build step if you want)
+> B) Modern, fast (small bundle, fast page loads)
+> C) Content/feature heavy (build complexity is fine, but should be maintainable)
+> D) Doesn't matter, you pick
 
 Capture as `preferences.priority` (one of `simple`, `performance`, `feature-richness`, `claude-decides`).
 
 #### Q2-dev-prefs-2: Interactivity (only ask for `interactive-static` or `full-app`)
 
-> Sitede ne kadar JS-tabanlı etkileşim olacak?
+> How much JS-based interaction will the site have?
 >
-> A) Az (sadece bir-iki yerde küçük etkileşim)
-> B) Orta (form'lar, küçük UI bileşenleri, biraz dinamik içerik)
-> C) Çok (gerçek anlamda app — sürekli state, complex flows)
-> D) Fark etmez, sen seç
+> A) Little (just a couple of small interactions)
+> B) Medium (forms, small UI components, a bit of dynamic content)
+> C) A lot (a real app — persistent state, complex flows)
+> D) Doesn't matter, you pick
 
 Capture as `preferences.interactivity` (one of `low`, `medium`, `high`, `claude-decides`).
 
 #### Q2-dev-prefs-3: Backend language (only ask for `full-app`)
 
-> Backend tarafı için bir dil/ekosistem tercihin var mı?
+> Any preference for the backend language/ecosystem?
 >
-> A) Frontend'le aynı paket olsun (tek node projesi)
-> B) Ayrı bir Node servisi
+> A) Same package as the frontend (a single node project)
+> B) A separate Node service
 > C) Python kullanmak isterim
-> D) Go / Rust / başka bir compiled language
+> D) Go / Rust / another compiled language
 > E) Java / .NET ekosistemi
-> F) Fark etmez, sen seç
+> F) Doesn't matter, you pick
 
 Capture as `preferences.backendLang` (one of `same-as-frontend`, `node-separate`, `python`, `compiled`, `enterprise-jvm`, `claude-decides`).
 
@@ -263,23 +263,23 @@ The plugin does NOT enumerate specific frameworks (Express vs Fastify vs Hono; D
 
 #### Q2-dev-prefs-4: Database (only ask for `full-app`)
 
-> Database için tercihin?
+> Database preference?
 >
-> A) En basit (file-based, sıfır ayar — sen seçersin)
-> B) Klasik SQL (Postgres ya da benzeri — sen seçersin)
-> C) Document DB (MongoDB ya da benzeri — sen seçersin)
-> D) Yok / kendim halledeceğim
-> E) Fark etmez, sen seç
+> A) Simplest (file-based, zero setup — you pick)
+> B) Classic SQL (Postgres or similar — you pick)
+> C) Document DB (MongoDB or similar — you pick)
+> D) None / I'll handle it myself
+> E) Doesn't matter, you pick
 
 Capture as `preferences.dbStyle` (one of `simple`, `sql`, `document`, `none`, `claude-decides`).
 
 #### Q2-dev-prefs-5: TypeScript
 
-> TypeScript kullanalım mı?
+> Should we use TypeScript?
 >
-> A) Evet
-> B) Hayır
-> C) Sen seç (scope'a göre uygun olanı)
+> A) Yes
+> B) No
+> C) You pick (whichever fits the scope)
 
 Capture as `preferences.typescript` (one of `true`, `false`, `claude-decides`).
 
@@ -299,7 +299,7 @@ createdAt: <ISO>
 lastModified: <ISO>
 agentRuns: []
 preferences: {
-  // Only in dev mode; sade mode leaves this as null or empty {}
+  // Only in dev mode; simple mode leaves this as null or empty {}
   priority: <captured | null>,
   interactivity: <captured | null>,
   backendLang: <captured | null>,
@@ -339,7 +339,7 @@ Expected: `11 passed, 0 failed.` (after Task 1 added the new command file).
 
 ```bash
 git add skills/web-builder-intake/SKILL.md
-git commit -m "feat: intake supports 4 scopes (sade) + framework-agnostic preferences (dev)"
+git commit -m "feat: intake supports 4 scopes (simple) + framework-agnostic preferences (dev)"
 ```
 
 ---
@@ -360,27 +360,27 @@ In `skills/web-builder-intake/SKILL.md`, find the section starting `## brief.md 
 Restructure the brief template as:
 
 ```markdown
-# Site Briefi: {siteName}
+# Site Brief: {siteName}
 
 ## Scope
 {scope value: single-page | multi-page-static | interactive-static | full-app}
 
-## Amaç
+## Goal
 {user goal}
 
-## Hedef Kitle
+## Audience
 {target audience}
 
-## Sayfa Listesi
+## Pages
 - ...
 
-## İçerik Kaynağı
+## Content Source
 {user-provided | plugin-generated}
 
-## Stil Tercihi
+## Style Preference
 {preset name}
 
-## Davranış / Etkileşim
+## Behavior / Interaction
 {interaction notes}
 
 ## Preferences (only populated in dev mode)
@@ -556,7 +556,7 @@ You are deciding between any modern frontend approach available **today**. Your 
    - `priority: simple` → lean toward zero-build or minimal-config solutions
    - `priority: performance` → lean toward small-bundle, fast-hydration solutions
    - `priority: feature-richness` → lean toward batteries-included frameworks
-   - `priority: claude-decides` (or null in sade mode) → use your judgment; default to the most popular & well-maintained option for the scope
+   - `priority: claude-decides` (or null in simple mode) → use your judgment; default to the most popular & well-maintained option for the scope
    - `interactivity: low` → static-first, hydrate sparingly
    - `interactivity: high` → SPA-like or full reactive framework
    - `typescript: true` → ensure TS support out of the box
@@ -584,9 +584,9 @@ After deciding, write to `state.json.chosenStack`:
 ```
 
 The rationale is user-facing — write it in plain language matching `state.json.siteLanguage`. Example rationales:
-- "Tek sayfa için vanilla HTML/CSS/JS yeterli; build step yok, herhangi bir hosting'de çalışır."
-- "Çok sayfalı statik site için içerik-odaklı bir SSG framework seçtim; kullanıcı tercihi 'simple' olduğu için."
-- "Full-app + 'Python istiyorum' tercihi olduğu için backend'i Python ile yapacağız; frontend tarafında SSR'ı destekleyen modern bir meta-framework seçtim."
+- "Vanilla HTML/CSS/JS is enough for a single page; no build step, works on any hosting."
+- "For a multi-page static site I picked a content-focused SSG framework, since the user's preference is 'simple'."
+- "Since the choice is full-app + 'I want Python', the backend will be in Python; on the frontend I picked a modern meta-framework that supports SSR."
 
 ## Output: the project files
 
@@ -697,7 +697,7 @@ Consider, in order:
    - `python` → a Python-based service
    - `compiled` → Go / Rust / similar
    - `enterprise-jvm` → JVM-based (Java / Kotlin)
-   - `claude-decides` (or null in sade mode) → default to the simplest viable option for the user's scope. For most users, "same-as-frontend" is simplest. If frontend is static/no-server, default to a Node service.
+   - `claude-decides` (or null in simple mode) → default to the simplest viable option for the user's scope. For most users, "same-as-frontend" is simplest. If frontend is static/no-server, default to a Node service.
 
 2. **`preferences.dbStyle`**:
    - `simple` → file-based DB (SQLite-like, zero setup)
@@ -899,10 +899,10 @@ Use Edit to replace:
 ```
 > Teknik konularda?
 >
-> A) Deploy hedefi değiştir (örn. Cloudflare → Vercel)
-> B) Site adı / URL slug değiştir
-> C) SEO meta (title, description) değiştir
-> D) Performance / cache ayarları
+> A) Change the deploy target (e.g. Cloudflare → Vercel)
+> B) Change the site name / URL slug
+> C) Change SEO meta (title, description)
+> D) Performance / cache settings
 ```
 
 with:
@@ -910,12 +910,12 @@ with:
 ```
 > Teknik konularda?
 >
-> A) Deploy hedefi değiştir (örn. Cloudflare → Vercel)
-> B) Site adı / URL slug değiştir
-> C) SEO meta (title, description) değiştir
-> D) Performance / cache ayarları
-> E) Tercihlerimi değiştir (interaktivite, performans, dil tercihi vs. — agent yeniden stack seçecek)
-> F) Scope değiştir (örn. tek sayfa → çok sayfalı — büyük değişiklik, site yeniden üretilir)
+> A) Change the deploy target (e.g. Cloudflare → Vercel)
+> B) Change the site name / URL slug
+> C) Change SEO meta (title, description)
+> D) Performance / cache settings
+> E) Change my preferences (interactivity, performance, language preference, etc. — the agent will re-pick the stack)
+> F) Change scope (e.g. single page → multi-page — big change, the site is regenerated)
 ```
 
 For E (preferences-change): the revise skill walks the user through dev-mode preference questions again (just like Q2-dev-prefs in intake), captures new values, returns:
@@ -933,10 +933,10 @@ For F (scope-change): the revise skill confirms the new scope, returns `{categor
 
 - [ ] **Step 2: Verify**
 
-Run: `grep -c "Tercihlerimi değiştir" skills/web-builder-revise/SKILL.md`
+Run: `grep -c "Change my preferences" skills/web-builder-revise/SKILL.md`
 Expected: 1.
 
-Run: `grep -c "Scope değiştir" skills/web-builder-revise/SKILL.md`
+Run: `grep -c "Change scope" skills/web-builder-revise/SKILL.md`
 Expected: 1.
 
 Run: `grep -cE "Astro|Next\.js|SvelteKit|Vue|React" skills/web-builder-revise/SKILL.md`
@@ -996,32 +996,32 @@ git commit -m "docs: deployer documents scope-aware target recommendations"
 **Files:**
 - Modify: `skills/web-builder-deliver/SKILL.md`
 
-Make the deploy prompt's "(önerilen)" label dynamic based on scope.
+Make the deploy prompt's "(recommended)" label dynamic based on scope.
 
 - [ ] **Step 1: Update deploy prompt option labels**
 
 Use Edit to replace:
 
 ```
-   > A) Cloudflare Pages (önerilen — en cömert ücretsiz plan, custom domain kolay)
-   > B) Vercel (Next.js için en doğal, statik için de iyi)
+   > A) Cloudflare Pages (recommended — most generous free plan, easy custom domains)
+   > B) Vercel (most natural for Next.js, also fine for static)
 ```
 
 with:
 
 ```
-   > A) Cloudflare Pages ({"önerilen — en cömert ücretsiz plan, custom domain kolay" if scope is static, otherwise "iyi statik seçenek"})
-   > B) Vercel ({"önerilen — modern full-app için en doğal" if scope is full-app, otherwise "full-app için en iyi, statik için de uygun"})
+   > A) Cloudflare Pages ({"recommended — most generous free plan, easy custom domains" if scope is static, otherwise "good static option"})
+   > B) Vercel ({"recommended — most natural for modern full-apps" if scope is full-app, otherwise "best for full-app, also fine for static"})
 ```
 
 The braces denote runtime conditional labels — the skill renders the right label by reading `state.json.scope`.
 
 - [ ] **Step 2: Verify**
 
-Run: `grep -c "önerilen — en cömert" skills/web-builder-deliver/SKILL.md`
+Run: `grep -c "recommended — most generous" skills/web-builder-deliver/SKILL.md`
 Expected: 1.
 
-Run: `grep -c "önerilen — modern full-app" skills/web-builder-deliver/SKILL.md`
+Run: `grep -c "recommended — most natural" skills/web-builder-deliver/SKILL.md`
 Expected: 1.
 
 - [ ] **Step 3: Commit**
@@ -1044,27 +1044,27 @@ These fixtures use the new brief format (Scope + Preferences, no stack names).
 - [ ] **Step 1: Write `tests/fixtures/sample-brief-single-page.md`**
 
 ```markdown
-# Site Briefi: ada-yazilim-cv
+# Site Brief: ada-smith-cv
 
 ## Scope
 single-page
 
-## Amaç
-Ada Yılmaz'ın yazılım geliştirici CV / portfolio tek sayfası. Kendi adıyla domain alacak.
+## Goal
+Ada Smith's software developer CV / portfolio single page. Will use a personal-name domain.
 
-## Hedef Kitle
-İşveren ve teknik recruiter'lar.
+## Audience
+Employers and technical recruiters.
 
-## Sayfa Listesi
-- Ana sayfa (tek sayfa içinde: hakkımda + projeler + iletişim bölümleri)
+## Pages
+- Home (single page with: about me + projects + contact sections)
 
-## İçerik Kaynağı
-Plugin örnek içerik üretecek (kullanıcı sonra düzenleyecek).
+## Content Source
+Plugin will generate sample content (user will edit it later).
 
-## Stil Tercihi
-Hazır stil: minimalist (siyah-beyaz + bir accent rengi)
+## Style Preference
+Preset style: minimalist (siyah-beyaz + bir accent rengi)
 
-## Davranış / Etkileşim
+## Behavior / Interaction
 - Tek sayfa, scroll-to-section navigasyonu yeterli.
 
 ## Preferences
@@ -1078,33 +1078,33 @@ Hazır stil: minimalist (siyah-beyaz + bir accent rengi)
 - [ ] **Step 2: Write `tests/fixtures/sample-brief-full-app.md`**
 
 ```markdown
-# Site Briefi: takim-takip
+# Site Brief: team-tracker
 
 ## Scope
 full-app
 
-## Amaç
-Küçük ekipler için basit görev takip uygulaması. Kullanıcılar üye olur, görev oluşturur, atayan, durumunu işaretler.
+## Goal
+A simple task-tracking app for small teams. Users sign up, create tasks, assign them, mark status.
 
-## Hedef Kitle
-3-10 kişilik ekipler.
+## Audience
+Teams of 3-10 people.
 
-## Sayfa Listesi
-- Giriş / Üye Ol
-- Dashboard (kendi görevlerim)
-- Tüm görevler (filtre ile)
-- Görev detay
-- Ekip üyeleri
+## Pages
+- Login / Sign Up
+- Dashboard (my tasks)
+- All tasks (with filters)
+- Task detail
+- Team members
 
-## İçerik Kaynağı
-Plugin örnek içerik üretecek (UI string'ler dahil — buton labelları, hata mesajları, boş state'ler).
+## Content Source
+Plugin will generate sample content (including UI strings — button labels, error messages, empty states).
 
-## Stil Tercihi
-Hazır stil: kurumsal (mavi-gri palet, sade)
+## Style Preference
+Preset style: corporate (blue-gray palette, clean)
 
-## Davranış / Etkileşim
-- Auth: email + parola (OAuth yok bu sürümde)
-- CRUD: görev oluştur, düzenle, sil, atayan değiştir
+## Behavior / Interaction
+- Auth: email + password (no OAuth in this version)
+- CRUD: create task, edit, delete, change assignee
 - Real-time: yok (manuel refresh yeterli)
 
 ## Preferences
@@ -1130,8 +1130,8 @@ git commit -m "test: add brief fixtures for single-page and full-app scopes (pre
 - Modify: `tests/smoke-test.md`
 
 Add Tests 11-14:
-- Test 11: single-page sade mode — agent picks a stack, builds successfully
-- Test 12: full-app sade mode — frontend AND backend agents run; both pick stacks; both build
+- Test 11: single-page simple mode — agent picks a stack, builds successfully
+- Test 12: full-app simple mode — frontend AND backend agents run; both pick stacks; both build
 - Test 13: dev mode with preference for "Python on backend" — backend-engineer picks a Python framework
 - Test 14: revise — change preferences (E option), agent re-picks stack
 
@@ -1145,7 +1145,7 @@ Critically: smoke tests **don't pin specific stack names**. They verify behavior
 Use Edit. Insert this content before the existing `## Pass criteria` line:
 
 ````markdown
-## Test 11: Single-page scope (sade mode)
+## Test 11: Single-page scope (simple mode)
 
 1. Run `/web-builder` in a clean dir.
 2. At the scope question, pick A (tek sayfa).
@@ -1158,11 +1158,11 @@ Pass:
 - The project either has no build step (vanilla case) or `npm run build` (or equivalent) succeeds
 - Generated files reflect content.md (site title, sections) and style-guide.md (palette in CSS)
 
-## Test 12: Full-app scope (sade mode)
+## Test 12: Full-app scope (simple mode)
 
 1. Run `/web-builder` in a clean dir.
-2. At scope question, pick D (üye girişi / sipariş / veri kaydı).
-3. Use the takim-takip example from sample-brief-full-app.md as inspiration for your answers (or any small CRUD app description).
+2. At scope question, pick D (sign-in / orders / data persistence).
+3. Use the team-tracker example from sample-brief-full-app.md as inspiration for your answers (or any small CRUD app description).
 4. Plugin runs frontend-expert AND backend-engineer (state.json.agentRuns has both, with status=success).
 5. Both agents populate state.json.chosenStack (frontend, backend, database, rationale).
 
@@ -1187,7 +1187,7 @@ Pass:
 ## Test 14: Revise — change preferences (re-pick stack)
 
 1. After Test 11 generation succeeds, run `/web-builder` again.
-2. Pick A (devam et / revize), then E (technical), then E (Tercihlerimi değiştir).
+2. Pick A (continue / revise), then E (technical), then E (Change my preferences).
 3. Walk through the preference questions; change `priority` from `simple` to `feature-richness`.
 4. Plugin regenerates; the frontend-expert may pick a different stack (richer framework) and update `state.json.chosenStack.frontend`.
 
@@ -1225,16 +1225,16 @@ Use Edit to change Status from v0.3.0 to:
 ```markdown
 ## Status
 
-**v0.4.0.** All 4 site scopes supported (single page, multi-page static, interactive static, full app), in sade or dev mode. Stack-agnostic — Claude picks the best framework/language for your project at generation time.
+**v0.4.0.** All 4 site scopes supported (single page, multi-page static, interactive static, full app), in simple or dev mode. Stack-agnostic — Claude picks the best framework/language for your project at generation time.
 
 - ✅ Generate any of 4 scope types from Q&A
-- ✅ Sade mode: minimal Q&A, plugin agents pick stack silently
+- ✅ Simple mode: minimal Q&A, plugin agents pick stack silently
 - ✅ Dev mode (`/web-builder-dev`): user expresses preferences (interactivity / performance / preferred backend language); agent picks accordingly
 - ✅ Stack-agnostic plugin: no hardcoded framework list. The agents pick from current ecosystem at runtime — future-proof against framework churn
 - ✅ Stack pick recorded in `state.json.chosenStack` so revisions stay consistent
 - ✅ Preview locally with one click
 - ✅ Deploy to Cloudflare Pages, Vercel, Netlify, or GitHub Pages (scope-aware default)
-- ✅ Auto git initialization in sade mode
+- ✅ Auto git initialization in simple mode
 - ✅ Revise existing projects: structured Q&A + impact analysis + undo + preferences-change
 
 Not yet supported (coming in later versions): SEO/accessibility agents, custom domain automation, multi-language site output, public Claude Code plugin distribution.
@@ -1301,7 +1301,7 @@ git commit -m "docs: bump to v0.4.0 (multi-scope + dev mode + stack-agnostic age
 Run: `tests/lint.sh`
 Expected: `12 passed, 0 failed.`
 
-- [ ] **Step 2: Structural smoke test — single-page sade mode**
+- [ ] **Step 2: Structural smoke test — single-page simple mode**
 
 Set up a temp project with `sample-brief-single-page.md` as `brief.md` plus minimal style-guide and content; write a sample `state.json` with `scope: single-page, mode: simple, chosenStack: null`. Dispatch a subagent acting as `frontend-expert`. Verify:
 - The agent reads state.json + brief
@@ -1311,7 +1311,7 @@ Set up a temp project with `sample-brief-single-page.md` as `brief.md` plus mini
 
 Don't pin which stack the agent picks. Verify the BEHAVIOR is correct.
 
-- [ ] **Step 3: Structural smoke test — full-app sade mode**
+- [ ] **Step 3: Structural smoke test — full-app simple mode**
 
 Similar setup with `sample-brief-full-app.md`. Dispatch frontend-expert AND backend-engineer (sequentially is fine for smoke). Verify:
 - Both populate state.json.chosenStack
@@ -1337,7 +1337,7 @@ git tag -a v0.4.0 -m "v0.4.0: multi-scope + dev mode + stack-agnostic agents
   ecosystem knowledge (Claude decides — no hardcoded stack list)
 - New backend-engineer agent for full-app
 - state.json.chosenStack records the picks for consistency across revisions
-- Revise skill: 'Tercihlerimi değiştir' option triggers re-pick
+- Revise skill: 'Change my preferences' option triggers re-pick
 "
 ```
 
@@ -1380,9 +1380,9 @@ git branch -d plan-4-multi-scope-and-dev-mode
 
 ## Risks and edge cases
 
-- **Agent picks an obscure framework**: agents are instructed to prefer well-maintained, popular frameworks. Risk is low but possible. Mitigation: rationale field is user-visible; user can revise via "Tercihlerimi değiştir".
+- **Agent picks an obscure framework**: agents are instructed to prefer well-maintained, popular frameworks. Risk is low but possible. Mitigation: rationale field is user-visible; user can revise via "Change my preferences".
 - **Agent's knowledge is stale**: when Claude's training data ages, its framework picks may not reflect the latest landscape. Acceptable for this plugin's scope — better than hardcoding stale picks in plugin code.
-- **Stack inconsistency across revisions**: orchestrator instructs agents to respect existing `state.json.chosenStack` if set. Only explicit "Tercihlerimi değiştir" triggers a re-pick.
+- **Stack inconsistency across revisions**: orchestrator instructs agents to respect existing `state.json.chosenStack` if set. Only explicit "Change my preferences" triggers a re-pick.
 - **Frontend and backend pick incompatible stacks**: parallel execution risks frontend and backend agents picking unrelated frameworks. Mitigation: backend-engineer reads `state.json.chosenStack.frontend` if frontend-expert finished first; if not yet set, defaults to a generic backend stack.
 - **Build failures from agent's pick**: if Claude picks a framework but generates broken code, the agent's retry policy kicks in. If it still fails after 1 retry, the orchestrator surfaces the failure and offers manual recovery.
 - **No stack restriction in plugin = no static guarantees**: a tradeoff. Users get future-proof flexibility; lose ability to "always get the same stack". The state.json.chosenStack record is the source of truth for what was actually picked.

@@ -1,22 +1,22 @@
-# Site Briefi: kadikoy-kahve
+# Site Brief: brooklyn-coffee
 
-## Amaç
-Kadıköy'de küçük bir kafe için tanıtım sitesi. Üçüncü dalga kahve ve ev yapımı sandviçler.
+## Purpose
+A promo site for a small cafe in Brooklyn. Third-wave coffee and homemade sandwiches.
 
-## Hedef Kitle
-Mahallenin sakinleri ve gezginler.
+## Target Audience
+Neighborhood residents and visitors.
 
-## Sayfa Listesi
-- Ana sayfa
-- Menü
-- Hakkımızda
-- İletişim
+## Page List
+- Home
+- Menu
+- About
+- Contact
 
-## İçerik Kaynağı
-Plugin örnek içerik üretecek (kullanıcı sonra düzenleyecek).
+## Content Source
+Plugin will generate sample content (user will edit it later).
 
-## Stil Tercihi
-Hazır stil: minimalist
+## Style Preference
+Preset style: minimalist
 
-## Davranış / Etkileşim
-- Statik site, form yok.
+## Behavior / Interaction
+- Static site, no forms.

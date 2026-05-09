@@ -36,7 +36,7 @@ Consider, in order:
    - `python` → a Python-based service
    - `compiled` → Go / Rust / similar
    - `enterprise-jvm` → JVM-based (Java / Kotlin)
-   - `claude-decides` (or null in sade mode) → default to the simplest viable option for the user's scope. For most users, "same-as-frontend" is simplest. If frontend is static/no-server, default to a Node service.
+   - `claude-decides` (or null in simple mode) → default to the simplest viable option for the user's scope. For most users, "same-as-frontend" is simplest. If frontend is static/no-server, default to a Node service.
 
 2. **`preferences.dbStyle`**:
    - `simple` → file-based DB (SQLite-like, zero setup)

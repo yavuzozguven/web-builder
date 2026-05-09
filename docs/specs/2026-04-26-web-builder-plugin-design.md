@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-A Claude Code plugin that helps users build complete websites through structured Q&A. The plugin guides users (technical or not) from a vague idea ("kafem için bir site") to a working, deployed site, using a small team of specialized sub-agents that own discrete artifacts (style guide, content, SEO, frontend code, backend, accessibility, deployment).
+A Claude Code plugin that helps users build complete websites through structured Q&A. The plugin guides users (technical or not) from a vague idea ("a site for my cafe") to a working, deployed site, using a small team of specialized sub-agents that own discrete artifacts (style guide, content, SEO, frontend code, backend, accessibility, deployment).
 
 The plugin's value over a free-form Claude conversation is:
 
@@ -20,7 +20,7 @@ The plugin's value over a free-form Claude conversation is:
 
 ### v1 Goals
 
-- 2 slash commands: `/web-builder` (sade mode) and `/web-builder-dev` (technical mode)
+- 2 slash commands: `/web-builder` (simple mode) and `/web-builder-dev` (technical mode)
 - 4 skills: `web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`
 - 7 agents: `ui-ux-designer`, `content-writer`, `seo-expert`, `frontend-expert`, `backend-engineer`, `accessibility-reviewer`, `deployer`
 - 4 supported scopes: single page / multi-page static / interactive static / full web app
@@ -28,7 +28,7 @@ The plugin's value over a free-form Claude conversation is:
 - Adaptive Q&A flow with auto language detection (TR + EN at minimum)
 - Brief-driven state model: `state.json` + `brief.md` + `style-guide.md` + `content.md` + `seo.md`
 - Structured revision flow with impact analysis (only affected agents re-run)
-- Automatic git commits (silent in sade mode, opt-in in dev mode)
+- Automatic git commits (silent in simple mode, opt-in in dev mode)
 - Deployment options: Cloudflare Pages, Vercel, Netlify, GitHub Pages, local-only
 - Image policy: contextual Unsplash placeholders + user upload (no AI image generation)
 - **Public distribution** as a Claude Code plugin via GitHub repo
@@ -56,7 +56,7 @@ The plugin's value over a free-form Claude conversation is:
 
 ## 3. Design Principles
 
-1. **Plain language always.** No technical term reaches a sade-mode user. In dev mode, terms are added but sentences stay human.
+1. **Plain language always.** No technical term reaches a simple-mode user. In dev mode, terms are added but sentences stay human.
 2. **Adaptive over standard.** Q&A length and depth scale with user level and chosen scope. Sade user / single page → ~5 questions. Dev user / full app → 15+.
 3. **Human-readable state.** Every plugin decision lands in a markdown file the user can open and edit. The plugin re-reads on next invocation and reconciles.
 4. **Decision = skill, execution = agent.** User-facing dialogue belongs to skills. Heavy generation belongs to agents in their own context.
@@ -64,37 +64,37 @@ The plugin's value over a free-form Claude conversation is:
 
 ## 4. User Flows
 
-### 4.1 Initial Generation (sade mode example)
+### 4.1 Initial Generation (simple mode example)
 
 ```
 $ /web-builder
-🤖 Selam! Sana yardım edeceğim. Önce bana biraz anlat:
+🤖 Hi! I'll help you out. First, tell me a bit:
 
-1) Bu site ne için, kim için olacak? Birkaç cümle yeterli.
-   > "Kafem için bir tanıtım sitesi. Kadıköy'de küçük bir yerim,
-      kahve ve sandviç satıyorum."
+1) What is this site for, and who is it for? A couple of sentences is enough.
+   > "A promo site for my cafe. I have a small place in Brooklyn,
+      I sell coffee and sandwiches."
 
-2) [plugin özetler ve scope'u önerir]
-   "Anladım — çok sayfalı bir tanıtım sitesi gibi duruyor
-   (ana sayfa + menü + iletişim). Sence de öyle mi?"
-   A) Evet     B) Daha basit, tek sayfa yeter
-   C) Daha karmaşık, üye girişi/sipariş gibi şeyler de olsun
+2) [plugin summarizes and proposes scope]
+   "Got it — sounds like a multi-page promo site
+   (home + menu + contact). Does that sound right?"
+   A) Yes     B) Simpler — one page is enough
+   C) More complex, with sign-in / orders, etc.
    > A
 
-3) Sana birkaç isim önerdim — beğenirsen seç, beğenmezsen kendin yaz:
-   • kadikoy-kahve
-   • mavi-kapi-cafe
-   • korner-kahve
-   • [veya kendin yaz]
-   > "kadikoy-kahve"
+3) Here are a few names — pick one or write your own:
+   • brooklyn-coffee
+   • blue-door-cafe
+   • corner-coffee
+   • [or write your own]
+   > "brooklyn-coffee"
 
-4) İçerik (isim, menü, fotoğraflar, hakkımızda metni vs.) için:
-   A) Ben vereceğim    B) Sen örnek içerik üret, sonra değiştiririm
+4) For the content (name, menu, photos, about text, etc.):
+   A) I'll provide it    B) You generate sample content, I'll edit later
    > B
 
-5) Görsel stil için:
-   A) Hazır stillerden seç (minimalist / playful / kurumsal / vintage / dark-modern)
-   B) Kendin tarif et    C) Bir referans site göster
+5) For the visual style:
+   A) Pick from presets (minimalist / playful / corporate / vintage / dark-modern)
+   B) Describe your own    C) Show a reference site
    > A → "minimalist"
 
 [adaptive: 0-10 follow-up questions based on scope and answers]
@@ -104,7 +104,7 @@ $ /web-builder
 
 `/web-builder-dev` runs the same flow but adds:
 
-- After scope confirmation: stack override question ("Astro öneriyorum, değiştirmek ister misin?")
+- After scope confirmation: stack override question ("I recommend Astro, want to change it?")
 - After content/style: lint, formatter, TypeScript, package manager preferences
 - A summary at the end naming the exact packages to be installed
 - All agent outputs are surfaced verbose (a11y report shown, not silent)
@@ -127,31 +127,31 @@ backend-engineer        → API/DB (only if scope = full app; parallel with fron
         ↓
 accessibility-reviewer  → in-place fixes + a11y-report.md
         ↓
-deliver skill           → "site hazır, görmek ister misin?" → optional deployer
+deliver skill           → "site is ready, want to see it?" → optional deployer
 ```
 
 ### 4.4 Revision Flow
 
-Trigger: user invokes `/web-builder` or `/web-builder-dev` again. Plugin sees `.web-builder/state.json` in the cwd and asks "geçen sefer şunu yapmıştık, devam edelim mi yoksa yeni bir site mi?"
+Trigger: user invokes `/web-builder` or `/web-builder-dev` again. Plugin sees `.web-builder/state.json` in the cwd and asks "last time we built this, do you want to continue or start a new site?"
 
 ```
-🤖 Tamam, kadikoy-kahve'ye dönüyoruz. Neyi değiştirmek istersin?
+🤖 OK, back to brooklyn-coffee. What do you want to change?
 
-A) Görsel stil (renkler, font, layout)
-B) İçerik (metinler, menü, kontak)
-C) Yapı/sayfa eklemek-çıkarmak
-D) Davranış (form, animasyon, etkileşim)
-E) Teknik (deploy ayarı, performance, SEO meta)
-F) Bunlar değil, ben tarif edeyim — serbest yazayım
+A) Visual style (colors, font, layout)
+B) Content (text, menu, contact)
+C) Structure / add-remove pages
+D) Behavior (form, animation, interaction)
+E) Technical (deploy setting, performance, SEO meta)
+F) None of those — let me describe it freely
 > A
 
-Stil için ne değiştirelim?
-A) Renk paletini değiştir    B) Font değiştir
-C) Genel havayı değiştir     D) Belirli bir bölüm
+What should we change about the style?
+A) Change the color palette    B) Change the font
+C) Change the overall vibe     D) A specific section
 > A
 
-Şu an: minimalist, beyaz/siyah/açık-yeşil. Ne istersin?
-> "biraz daha sıcak olsun, kahverengi ağırlıklı"
+Right now: minimalist, white/black/light-green. What would you like?
+> "make it a bit warmer, more brown-leaning"
 ```
 
 ### 4.5 Revision Behind the Scenes
@@ -169,14 +169,14 @@ orchestrator   → impact analysis: which artifact(s) and which agent(s)?
   (content unchanged → content-writer skipped)
   (seo unchanged → seo-expert skipped)
         ↓
-deliver skill  → "değişiklikler hazır, bakar mısın?"
+deliver skill  → "changes are ready, want to take a look?"
 ```
 
 Rules:
 
-- **Impact analysis** — orchestrator runs the minimum set. "Renk değiştir" → designer + frontend. "Yeni sayfa" → designer + content-writer + seo + frontend.
-- **Manual brief edits** — plugin compares current `brief.md` hash with last-known hash from `state.json`. If different, asks "brief'i değiştirmişsin, etkilenen kısımları yeniden üreteyim mi?"
-- **Undo** — every revision is preceded by an automatic git commit. "Son değişikliği geri al" reverts to the previous commit.
+- **Impact analysis** — orchestrator runs the minimum set. "Change colors" → designer + frontend. "New page" → designer + content-writer + seo + frontend.
+- **Manual brief edits** — plugin compares current `brief.md` hash with last-known hash from `state.json`. If different, asks "you edited the brief, should I regenerate the affected parts?"
+- **Undo** — every revision is preceded by an automatic git commit. "Undo last change" reverts to the previous commit.
 - **Free-form mode (F)** — plugin maps the user's free-form description to a structured category, confirms, then routes through the normal flow.
 
 ## 5. Architecture
@@ -187,7 +187,7 @@ Rules:
 web-builder/
 ├── plugin.json
 ├── commands/
-│   ├── web-builder.md          # /web-builder (sade entry)
+│   ├── web-builder.md          # /web-builder (simple entry)
 │   └── web-builder-dev.md      # /web-builder-dev (dev entry)
 ├── skills/
 │   ├── web-builder-orchestrator/
@@ -257,7 +257,7 @@ Each agent is spawned via Claude Code's `Agent` tool, runs in its own context, r
 ### 6.1 Generated Project Folder
 
 ```
-kadikoy-kahve/                          # user-chosen project name
+brooklyn-coffee/                          # user-chosen project name
 ├── .web-builder/                       # plugin's own state (hidden)
 │   ├── state.json                      # machine-readable
 │   ├── history/                        # snapshots per revision (state + brief diff)
@@ -280,7 +280,7 @@ kadikoy-kahve/                          # user-chosen project name
   "language": "tr",
   "scope": "multi-page-static",
   "stack": "astro+tailwind",
-  "siteName": "kadikoy-kahve",
+  "siteName": "brooklyn-coffee",
   "siteLanguage": "tr",
   "createdAt": "2026-04-26T10:00:00Z",
   "lastModified": "2026-04-26T11:30:00Z",
@@ -290,7 +290,7 @@ kadikoy-kahve/                          # user-chosen project name
   ],
   "deployment": {
     "type": "cloudflare-pages",
-    "url": "kadikoy-kahve.pages.dev",
+    "url": "brooklyn-coffee.pages.dev",
     "lastDeployAt": "..."
   }
 }
@@ -301,7 +301,7 @@ Field meanings:
 - `mode` — `simple` or `dev`; controls verbosity, stack-choice exposure, agent output detail.
 - `language` — plugin's conversation language, auto-detected on first interaction.
 - `scope` — one of `single-page`, `multi-page-static`, `interactive-static`, `full-app`.
-- `stack` — stack identifier; in sade mode auto-derived from scope, in dev mode user-chosen.
+- `stack` — stack identifier; in simple mode auto-derived from scope, in dev mode user-chosen.
 - `siteLanguage` — language of the generated site (asked separately during intake).
 - `briefHash` — hash of `brief.md` after the last successful agent run; used to detect manual edits.
 - `agentRuns` — append-only audit log of every agent invocation.
@@ -311,25 +311,25 @@ Field meanings:
 Every `brief.md` follows the same section order so agents can parse predictably:
 
 ```markdown
-# Site Briefi: kadikoy-kahve
+# Site Brief: brooklyn-coffee
 
-## Amaç
+## Goal
 [one-paragraph user goal]
 
-## Hedef Kitle
+## Audience
 [target audience]
 
-## Sayfa Listesi
+## Pages
 - [page]
 - [page]
 
-## İçerik Kaynağı
+## Content Source
 [user-provided | plugin-generated placeholders]
 
-## Stil Tercihi
+## Style Preference
 [preset name | freeform description | reference URL]
 
-## Davranış / Etkileşim
+## Behavior / Interaction
 - [forms, animations, interactivity choices]
 
 ## Teknik (only filled in dev mode)
@@ -343,12 +343,12 @@ Each project lives in its own subdirectory under whatever folder the user invoke
 
 ### 6.5 Git Behavior
 
-- **Sade mode:** plugin runs `git init` silently on first generation, makes an initial commit once the site is generated, and auto-commits before every revision. The "undo" feature uses these commits. The user does not need to know `git` exists.
+- **Simple mode:** plugin runs `git init` silently on first generation, makes an initial commit once the site is generated, and auto-commits before every revision. The "undo" feature uses these commits. The user does not need to know `git` exists.
 - **Dev mode:** plugin asks before `git init` and before each auto-commit. User can opt out.
 
 ## 7. Tech Stack Policy
 
-### 7.1 Default Stack Mapping (sade mode)
+### 7.1 Default Stack Mapping (simple mode)
 
 | Scope | Default Stack | Rationale |
 |---|---|---|
@@ -369,10 +369,10 @@ Each project lives in its own subdirectory under whatever folder the user invoke
 ### 7.3 Fixed Decisions (both modes)
 
 - **Package manager:** `pnpm`, fall back to `npm` if absent. Not asked.
-- **Linter/Formatter:** Off in sade mode (extra noise). Default `eslint + prettier` in dev mode; can be disabled.
+- **Linter/Formatter:** Off in simple mode (extra noise). Default `eslint + prettier` in dev mode; can be disabled.
 - **Test framework:** Never auto-installed. The user adds later if wanted.
 - **TypeScript:** Default on for Astro/Next.js. Default off for vanilla.
-- **CSS framework:** Tailwind always in sade mode; overridable in dev mode.
+- **CSS framework:** Tailwind always in simple mode; overridable in dev mode.
 
 ## 8. Image Policy
 
@@ -396,12 +396,12 @@ Before deploying, plugin checks the relevant CLI auth status. If missing, it exp
 
 Agents can fail (rate limits, model error, malformed output, missing inputs). Policy:
 
-- Orchestrator **automatically retries once** on agent failure (including in sade mode).
+- Orchestrator **automatically retries once** on agent failure (including in simple mode).
 - Regardless of mode, the orchestrator **always reports the failure to the user** — what failed, what was attempted, and what the retry result was.
 - After two consecutive failures, the orchestrator pauses and surfaces clear options: retry manually, skip this agent (only allowed for non-blocking agents — `accessibility-reviewer`, `seo-expert`, and `content-writer` when the user supplied their own content; never allowed for `ui-ux-designer` or `frontend-expert`), or abort.
 - All failures and retries are appended to `agentRuns` in `state.json`.
 
-This is identical in sade and dev modes — the user is never silently left with a partially generated site.
+This is identical in simple and dev modes — the user is never silently left with a partially generated site.
 
 ## 11. Versioning & Distribution
 

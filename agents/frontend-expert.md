@@ -33,7 +33,7 @@ You are deciding between any modern frontend approach available **today**. Your 
    - `priority: simple` → lean toward zero-build or minimal-config solutions
    - `priority: performance` → lean toward small-bundle, fast-hydration solutions
    - `priority: feature-richness` → lean toward batteries-included frameworks
-   - `priority: claude-decides` (or null in sade mode) → use your judgment; default to the most popular & well-maintained option for the scope
+   - `priority: claude-decides` (or null in simple mode) → use your judgment; default to the most popular & well-maintained option for the scope
    - `interactivity: low` → static-first, hydrate sparingly
    - `interactivity: high` → SPA-like or full reactive framework
    - `typescript: true` → ensure TS support out of the box
@@ -61,8 +61,8 @@ After deciding, write to `state.json.chosenStack`:
 ```
 
 The rationale is user-facing — write it in plain language matching `state.json.siteLanguage`. Example rationales:
-- "Tek sayfa için vanilla HTML/CSS/JS yeterli; build step yok, herhangi bir hosting'de çalışır."
-- "Çok sayfalı statik site için içerik-odaklı bir SSG framework seçtim; kullanıcı tercihi 'simple' olduğu için."
+- "Vanilla HTML/CSS/JS is enough for a single page; no build step, works on any hosting."
+- "For a multi-page static site I picked a content-focused SSG framework, since the user's preference is 'simple'."
 
 ## Output: the project files
 
