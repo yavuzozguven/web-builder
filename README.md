@@ -1,139 +1,176 @@
 # web-builder
 
-A Claude Code plugin that builds you a complete website end-to-end through guided Q&A.
+> **Describe a website. Get a working, deployable project — without picking a framework, writing boilerplate, or touching a config file.**
 
-You describe what you want — a one-pager for your CV, a multi-page promo site for your cafe, a full-app for your team's tools — the plugin asks a few short questions, picks the most appropriate framework/language for the job, generates the code, and (optionally) deploys it.
+A Claude Code plugin that turns a short conversation into a complete, runnable website — frontend, content, SEO, accessibility pass, and one-command deploy.
 
-The plugin is **stack-agnostic**: it doesn't ship with a hardcoded list of frameworks. The agents pick from the current ecosystem at runtime — so the choice tracks what's actually best today, not what was best when the plugin was authored.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-orange)](https://claude.com/claude-code)
+[![Status](https://img.shields.io/badge/status-v1.0.0-blue)](CHANGELOG.md)
 
-## Install
+![web-builder demo](docs/demo.gif)
 
-The plugin is distributed as a single-plugin Claude Code marketplace. Add the marketplace and install in two steps (run inside a `claude` session):
+<sub>*Illustrative demo of the `/web-builder:start` flow — actual session timing varies with model latency and project size.*</sub>
 
-```
-/plugin marketplace add yavuzozguven/web-builder
-/plugin install web-builder@web-builder
-```
+---
 
-(The `@web-builder` after the plugin name is the marketplace name. They happen to match because this repo is its own single-plugin marketplace.)
-
-Verify it loaded:
-
-```
-/plugin
-```
-
-You should see `web-builder` listed and the slash commands `/web-builder:start` and `/web-builder:dev` available.
-
-### Local development install (clone + try it)
-
-If you've cloned the repo locally and want to test changes without going through the marketplace:
+## 30-second quickstart
 
 ```bash
-cd path/to/web-builder
-claude --plugin-dir .
-```
+# 1. Install the plugin (inside a `claude` session)
+/plugin marketplace add yavuzozguven/web-builder
+/plugin install web-builder@web-builder
 
-This loads the plugin directly into the current `claude` session. Re-run after each change.
-
-## Use
-
-In any directory:
-
-```
-claude
-```
-
-then in the Claude prompt:
-
-```
+# 2. From any empty directory:
 /web-builder:start
 ```
 
-The plugin asks 5-10 questions in plain language, picks an appropriate framework, and generates a working project in a subfolder. Then it offers to preview the site locally and (if you want) deploy it to a free host.
+Answer 5–10 plain-language questions. The plugin generates the project, runs the build, and offers to preview + deploy.
 
-For technical users who want to express preferences (e.g., "I prefer Python on the backend", "I want it as simple as possible", "I prioritize performance"):
+---
+
+## Why
+
+Most "AI website builders" are locked to one stack (usually whatever was hot when the tool shipped). web-builder is **stack-agnostic by design**: the agents pick the framework, language, and database at runtime based on what the project actually needs and what's best in the current ecosystem.
+
+Ask for a one-page CV → it might pick vanilla HTML/CSS.
+Ask for a multi-page promo site → likely a content-focused SSG.
+Ask for a full-app with auth and a database → frontend + backend + schema, picked together.
+
+You don't choose the stack. You describe the goal. The plugin justifies its choice in `state.json.chosenStack.rationale`, and you can override via preferences.
+
+## What you get
+
+- **A complete project**, not a starter template — pages, components, real content, SEO metadata, accessibility-clean markup.
+- **Human-readable source files** (`brief.md`, `content.md`, `style-guide.md`, `seo.md`) that you can hand-edit and the plugin will pick up on the next run.
+- **Auto-commits before and after every revision**, so undo is always one command away.
+- **One-command deploy** to Cloudflare Pages, Vercel, Netlify, GitHub Pages, or "just give me the files."
+
+## Example
 
 ```
-/web-builder:dev
+> /web-builder:start
+
+Q1: What kind of site do you want?
+> A small promo site for my coffee shop in Brooklyn.
+   Coffee + sandwiches, neighborhood vibe.
+
+Q2: Multi-page promo (home + menu + about + contact)?
+> Yes.
+
+Q3: Pick a name:
+   A) brooklyn-coffee   B) corner-coffee   C) write your own
+> A
+
+Q4: Content source?
+   A) I'll provide it   B) Generate placeholders
+> B
+
+Q5: Visual style?
+   A) Minimalist  B) Warm  C) Playful  D) Corporate  E) Dark
+> B
+
+[designer → content-writer + seo-expert (parallel) → frontend-expert → a11y review]
+
+✓ Generated: brooklyn-coffee/  (Astro + Tailwind, 4 pages, SEO + sitemap, a11y clean)
+  Build succeeded. Want to preview locally? (Y/n)
 ```
 
-Same flow with extra preference questions. The plugin still picks the framework — but informed by your preferences.
+## Two entry points
 
-## What you end up with
+| Command | Audience | Behavior |
+|---|---|---|
+| `/web-builder:start` | Anyone | 5–10 plain-language questions, no jargon. |
+| `/web-builder:dev` | Devs | Same flow + preference questions (backend language, TS yes/no, priority: simple vs feature-rich, etc.). |
 
-Each generated project lives in its own subfolder:
+The plugin still picks the stack in both modes — `:dev` just lets you constrain the choice.
+
+## Revise without starting over
+
+Run `/web-builder:start` from inside an existing project and the plugin detects state, then offers structured edits:
+
+- **Style** — colors, fonts, layout
+- **Content** — page text, contact info
+- **Structure** — add/remove pages
+- **Behavior** — forms, animations
+- **Technical** — deploy target, SEO meta, scope change, a11y recheck
+- **Free-form** — describe anything
+- **Undo last change** — `git revert` the most recent revision commit
+
+Each revision auto-commits a before/after pair. You can always go back.
+
+## Deploy
+
+After generation (or on revision), pick a target:
+
+- **Cloudflare Pages** — free, easy custom domains
+- **Vercel** — best for full-app workloads
+- **Netlify** — classic alternative
+- **GitHub Pages** — your own repo + GitHub Actions
+- **Local files** — host it yourself
+
+The plugin checks CLI auth (`wrangler login`, `vercel login`, etc.) and if you're not logged in, prints the exact command — never asks for credentials directly.
+
+## What lives in a generated project
 
 ```
 {project-name}/
 ├── brief.md              # what you told the plugin you wanted
-├── style-guide.md        # color palette, fonts, layout decisions
-├── content.md            # page-by-page text and images
-├── seo.md                # per-page titles, descriptions, og policy, sitemap, robots
+├── style-guide.md        # palette, typography, layout decisions
+├── content.md            # page-by-page text + images
+├── seo.md                # titles, descriptions, og policy, sitemap, robots
 ├── a11y-report.md        # accessibility review results (inline fixes + report)
 ├── .web-builder/
-│   └── state.json        # plugin's own state (preferences + chosenStack)
-└── (frontend project files — vary by stack the agent picked)
+│   └── state.json        # preferences + chosen stack + agent run log
+└── (frontend / backend project files — picked at runtime)
 ```
 
-The `*.md` files are human-readable — you can edit them by hand, then re-run `/web-builder:start` from inside the project folder; the plugin detects your edits (briefHash diff) and offers to regenerate the affected parts.
+The `.md` files are the source of truth. Edit them and re-run `/web-builder:start` — the plugin detects the edits (`briefHash` diff) and regenerates only the affected parts.
 
-## Revise an existing project
+## Architecture (one paragraph)
 
-From inside a project folder:
-
-```
-/web-builder:start
-```
-
-The plugin asks "Continue (revise) / New site / Cancel". Pick "Continue" and you get a structured Q&A:
-
-- **Style** (colors, font, layout)
-- **Content** (text, contact)
-- **Structure** (new page, delete page)
-- **Behavior** (form, animation)
-- **Technical** (deploy, SEO meta, preference change, scope, a11y recheck)
-- **Free-form** (anything)
-- **Undo last change** (`git revert`)
-
-Each revision auto-commits before/after, so undo is always available.
-
-## Deploy
-
-After generation (or on revision), the plugin asks where to publish:
-
-- **Cloudflare Pages** — free, custom domain easy
-- **Vercel** — best for full-app
-- **Netlify** — classic alternative
-- **GitHub Pages** — your own repo + GitHub Actions
-- **Local-only** — get the files, host yourself
-
-The plugin checks CLI auth (`wrangler login`, `vercel login`, etc.); if you're not logged in, it tells you the exact command to run.
-
-## Architecture
-
-Skills (`web-builder-orchestrator`, `web-builder-intake`, `web-builder-revise`, `web-builder-deliver`) handle dialog. Worker agents (`ui-ux-designer`, `content-writer`, `seo-expert`, `frontend-expert`, `backend-engineer`, `accessibility-reviewer`, `deployer`) write the actual files in their own context. The pipeline runs:
+**Skills** (`web-builder-orchestrator`, `-intake`, `-revise`, `-deliver`) drive the dialog. **Worker agents** (`ui-ux-designer`, `content-writer`, `seo-expert`, `frontend-expert`, `backend-engineer`, `accessibility-reviewer`, `deployer`) write files in isolated contexts. Pipeline:
 
 ```
-designer → [content-writer + seo-expert parallel] → [frontend-expert + backend-engineer parallel for full-app] → accessibility-reviewer (final pass)
+designer → [content-writer + seo-expert ‖] → [frontend-expert + backend-engineer ‖ for full-app] → accessibility-reviewer
 ```
 
-`frontend-expert` and `backend-engineer` are stack-agnostic — they pick the framework/language at runtime based on your preferences and current ecosystem knowledge, then record the choice in `state.json.chosenStack`.
+`frontend-expert` and `backend-engineer` carry no hardcoded stack list — they decide at runtime and record the rationale.
 
-See `docs/specs/2026-04-26-web-builder-plugin-design.md` for the full design.
+Full design: [`docs/specs/2026-04-26-web-builder-plugin-design.md`](docs/specs/2026-04-26-web-builder-plugin-design.md).
 
-## Status
+## Local development
 
-**v1.0.0** — first stable release. Functional surface complete; intended for public install.
+To hack on the plugin itself:
 
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+```bash
+git clone https://github.com/yavuzozguven/web-builder.git
+cd web-builder
+claude --plugin-dir .
+```
 
-Not yet supported (planned for v1.x): custom domain automation, multi-language site output (hreflang), test framework setup, AI-generated images, template marketplace.
+This loads the plugin from your working copy. Re-run after each edit. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Status & roadmap
+
+**v1.0.0** — first stable release. Functional surface complete; ready for public install.
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+
+**Planned for v1.x:**
+- Custom domain automation
+- Multi-language site output (hreflang)
+- Test framework setup
+- AI-generated images (replacing Unsplash placeholders)
+- Template marketplace
 
 ## Contributing
 
-Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines.
+Issues and PRs welcome — bug reports, stack additions to the agents' decision space, new revision categories, deploy targets. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE) — use it, fork it, ship it.
+
+---
+
+If web-builder helped you ship something, a ⭐ on the repo is appreciated — it's the only signal the project gets.
