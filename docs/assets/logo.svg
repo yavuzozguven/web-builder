@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- web-builder logomark: angle brackets framing a stacked-block (build) glyph -->
+  <g fill="none" stroke="#22d3ee" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- left bracket -->
+    <polyline points="18,18 8,32 18,46"/>
+    <!-- right bracket -->
+    <polyline points="46,18 56,32 46,46"/>
+  </g>
+  <!-- stacked blocks in the middle (build motif) -->
+  <g fill="#22d3ee">
+    <rect x="22" y="34" width="9" height="8" rx="1.2"/>
+    <rect x="33" y="34" width="9" height="8" rx="1.2"/>
+    <rect x="27.5" y="24" width="9" height="8" rx="1.2"/>
+  </g>
+</svg>
